@@ -1,0 +1,156 @@
+:root {
+  color-scheme: dark;
+
+  /* Kurio primitives */
+  --kurio-ink-950: #100a08;
+  --kurio-ink-900: #160d0a;
+  --kurio-brown-900: #1d100d;
+  --kurio-brown-850: #24130f;
+  --kurio-brown-800: #2b1813;
+  --kurio-brown-700: #3a2017;
+  --kurio-brown-600: #4b281b;
+  --kurio-copper-500: #dc8d48;
+  --kurio-copper-400: #eba15c;
+  --kurio-gold-500: #bc8a48;
+  --kurio-sand-500: #ad8a65;
+  --kurio-sand-300: #d8bfa2;
+  --kurio-sand-100: #f5eee8;
+  --kurio-red-500: #d66550;
+  --kurio-green-500: #6f9f7d;
+
+  /* Semantic colors consumed by shadcn/ui and application components */
+  --background: var(--kurio-ink-950);
+  --foreground: var(--kurio-sand-100);
+  --card: var(--kurio-brown-850);
+  --card-foreground: var(--kurio-sand-100);
+  --popover: var(--kurio-brown-850);
+  --popover-foreground: var(--kurio-sand-100);
+  --primary: var(--kurio-copper-500);
+  --primary-foreground: var(--kurio-ink-950);
+  --secondary: var(--kurio-brown-800);
+  --secondary-foreground: var(--kurio-sand-100);
+  --muted: var(--kurio-brown-900);
+  --muted-foreground: var(--kurio-sand-500);
+  --accent: var(--kurio-brown-700);
+  --accent-foreground: var(--kurio-copper-400);
+  --destructive: var(--kurio-red-500);
+  --destructive-foreground: var(--kurio-sand-100);
+  --success: var(--kurio-green-500);
+  --success-foreground: var(--kurio-ink-950);
+  --warning: var(--kurio-copper-400);
+  --warning-foreground: var(--kurio-ink-950);
+  --border: var(--kurio-brown-600);
+  --input: #59301e;
+  --ring: var(--kurio-copper-400);
+  --overlay: rgb(16 10 8 / 82%);
+
+  /* Data visualization */
+  --chart-1: var(--kurio-copper-500);
+  --chart-2: var(--kurio-gold-500);
+  --chart-3: var(--kurio-green-500);
+  --chart-4: var(--kurio-sand-300);
+  --chart-5: var(--kurio-red-500);
+
+  /* Account navigation */
+  --sidebar: var(--kurio-brown-850);
+  --sidebar-foreground: var(--kurio-sand-100);
+  --sidebar-primary: var(--kurio-copper-500);
+  --sidebar-primary-foreground: var(--kurio-ink-950);
+  --sidebar-accent: var(--kurio-brown-700);
+  --sidebar-accent-foreground: var(--kurio-copper-400);
+  --sidebar-border: var(--kurio-brown-600);
+  --sidebar-ring: var(--kurio-copper-400);
+
+  /* Shape, elevation, and motion */
+  --radius: 0.625rem;
+  --kurio-radius-control: 0.5rem;
+  --kurio-radius-card: 0.875rem;
+  --kurio-radius-panel: 1.5rem;
+  --kurio-shadow-card: 0 1rem 2.5rem rgb(0 0 0 / 20%);
+  --kurio-shadow-elevated: 0 1.5rem 4rem rgb(0 0 0 / 38%);
+  --kurio-shadow-focus: 0 0 0 0.1875rem rgb(235 161 92 / 32%);
+  --kurio-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 240ms;
+
+  /* Layout rhythm */
+  --page-gutter: clamp(1rem, 4vw, 4.5rem);
+  --section-space: clamp(3rem, 8vw, 7.5rem);
+  --content-max: 75rem;
+}
+
+@theme inline {
+  --font-sans: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --text-display: clamp(2.25rem, 6vw, 4.5rem);
+  --text-display--line-height: 1.06;
+  --text-title: clamp(1.75rem, 4vw, 2.5rem);
+  --text-title--line-height: 1.15;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.35;
+  --text-subheading: 1rem;
+  --text-subheading--line-height: 1.45;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.65;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.25;
+
+  --tracking-display: -0.035em;
+  --tracking-heading: -0.015em;
+  --tracking-label: 0.08em;
+
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-control: var(--kurio-radius-control);
+  --radius-card: var(--kurio-radius-card);
+  --radius-panel: var(--kurio-radius-panel);
+
+  --shadow-card: var(--kurio-shadow-card);
+  --shadow-elevated: var(--kurio-shadow-elevated);
+  --shadow-focus: var(--kurio-shadow-focus);
+  --ease-kurio: var(--kurio-ease-standard);
+  --container-content: var(--content-max);
+}
