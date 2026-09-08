@@ -1,0 +1,39 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #f8f3ee;
+  background: #100a08;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+main {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1,
+p {
+  margin-block: 0;
+}
+
+p {
+  margin-top: 1rem;
+  color: #cbb39a;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "kurio-nft-marketplace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.9",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "5.0.4",
+    "typescript": "5.9.3",
+    "vite": "7.1.9"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}
