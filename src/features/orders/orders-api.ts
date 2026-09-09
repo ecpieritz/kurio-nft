@@ -27,3 +27,35 @@ export function createOrder(
       request,
   })
 }
+
+export function fetchOrder(
+  orderId: string,
+  signal?: AbortSignal,
+): Promise<Order> {
+  return apiRequest<Order>({
+    method: 'GET',
+
+    url:
+      endpoints.orders.details(
+        orderId,
+      ),
+
+    signal,
+  })
+}
+
+export function recoverOrder(
+  idempotencyKey: string,
+  signal?: AbortSignal,
+): Promise<Order> {
+  return apiRequest<Order>({
+    method: 'GET',
+
+    url:
+      endpoints.orders.recovery(
+        idempotencyKey,
+      ),
+
+    signal,
+  })
+}

@@ -1,17 +1,22 @@
 import type {
+  BlockchainNetwork,
   Cart,
   CollectorProfile,
   CollectorWallet,
+  DecimalString,
   EntityId,
   FavoriteCollection,
   ISODateString,
   NftDetails,
   Order,
+  OrderItemSnapshot,
   QuoteResponse,
   SessionUser,
+  WalletAddress,
 } from '@/lib/api/contracts'
 
-export interface MockUserRecord extends SessionUser {
+export interface MockUserRecord
+  extends SessionUser {
   normalizedEmail: string
   passwordDigest: string
   createdAt: ISODateString
@@ -30,10 +35,25 @@ export interface MockCouponRecord {
   enabled: boolean
 }
 
+export interface MockOrderSnapshotRecord {
+  orderId: EntityId
+  cartId: EntityId
+  network: BlockchainNetwork
+  walletAddress: WalletAddress
+  walletProvider: string
+  items: OrderItemSnapshot[]
+  subtotalEth: DecimalString
+  discountEth: DecimalString
+  networkFeeEth: DecimalString
+  totalEth: DecimalString
+}
+
 export interface MockIdempotencyRecord {
   key: string
+  userId: EntityId
   requestFingerprint: string
   orderId: EntityId
+  orderSnapshot?: MockOrderSnapshotRecord
 }
 
 export interface MockDatabaseState {
@@ -42,12 +62,28 @@ export interface MockDatabaseState {
   users: MockUserRecord[]
   sessions: MockSessionRecord[]
   nfts: NftDetails[]
-  favoritesByUser: Record<EntityId, FavoriteCollection>
+
+  favoritesByUser: Record<
+    EntityId,
+    FavoriteCollection
+  >
+
   carts: Cart[]
   quotes: QuoteResponse[]
   orders: Order[]
-  profilesByUser: Record<EntityId, CollectorProfile>
-  walletsByUser: Record<EntityId, CollectorWallet[]>
+
+  profilesByUser: Record<
+    EntityId,
+    CollectorProfile
+  >
+
+  walletsByUser: Record<
+    EntityId,
+    CollectorWallet[]
+  >
+
   coupons: MockCouponRecord[]
-  idempotencyRecords: MockIdempotencyRecord[]
+
+  idempotencyRecords:
+    MockIdempotencyRecord[]
 }

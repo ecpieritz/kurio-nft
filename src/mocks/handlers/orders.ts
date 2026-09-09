@@ -9,11 +9,20 @@ import type {
   CollectorCheckoutDetails,
   CreateOrderRequest,
   Order,
+  OrderItemSnapshot,
+  OrderReceipt,
 } from '@/lib/api/contracts'
 import { authorizeMockRequest } from '@/mocks/auth/authorize-request'
 import { mockDatabase } from '@/mocks/database/database'
+import type {
+  MockDatabaseState,
+  MockOrderSnapshotRecord,
+} from '@/mocks/database/types'
 import { applyNetworkScenario } from '@/mocks/scenarios/network'
 import { getActiveScenario } from '@/mocks/scenarios/runtime'
+
+const ORDER_CONFIRMATION_DELAY_MS =
+  900
 
 function isRecord(
   value: unknown,
@@ -152,7 +161,6 @@ function errorResponse(
         details,
       },
     },
-
     {
       status,
     },
@@ -160,7 +168,8 @@ function errorResponse(
 }
 
 function validateCollector(
-  collector: CollectorCheckoutDetails,
+  collector:
+    CollectorCheckoutDetails,
 ): HttpResponse<ApiErrorResponse> | null {
   if (
     !collector.displayName.trim() ||
@@ -191,7 +200,8 @@ function validateCollector(
 }
 
 function requestFingerprint(
-  request: CreateOrderRequest,
+  request:
+    CreateOrderRequest,
 ): string {
   return JSON.stringify({
     quoteId:
@@ -231,9 +241,7 @@ function requestFingerprint(
 
 function validateQuoteSnapshot(
   state:
-    ReturnType<
-      typeof mockDatabase.read
-    >,
+    MockDatabaseState,
   quoteId: string,
   userId: string,
 ): HttpResponse<ApiErrorResponse> | null {
@@ -293,7 +301,7 @@ function validateQuoteSnapshot(
 
   if (
     cart.version !==
-    quote.cartVersion
+      quote.cartVersion
   ) {
     return errorResponse(
       'CONFLICT',
@@ -438,6 +446,496 @@ function validateQuoteSnapshot(
   return null
 }
 
+function createOrderSnapshot(
+  state:
+    MockDatabaseState,
+  orderId: string,
+  quoteId: string,
+  walletId: string,
+): MockOrderSnapshotRecord | null {
+  const quote =
+    state.quotes.find(
+      (
+        candidate,
+      ) =>
+        candidate.id ===
+        quoteId,
+    )
+
+  if (!quote) {
+    return null
+  }
+
+  const cart =
+    state.carts.find(
+      (
+        candidate,
+      ) =>
+        candidate.id ===
+        quote.cartId,
+    )
+
+  if (!cart) {
+    return null
+  }
+
+  const wallet =
+    Object.values(
+      state.walletsByUser,
+    )
+      .flat()
+      .find(
+        (
+          candidate,
+        ) =>
+          candidate.id ===
+          walletId,
+      )
+
+  if (!wallet) {
+    return null
+  }
+
+  const items:
+    OrderItemSnapshot[] =
+    []
+
+  for (
+    const quoteItem
+    of quote.items
+  ) {
+    const cartItem =
+      cart.items.find(
+        (
+          candidate,
+        ) =>
+          candidate.id ===
+          quoteItem.cartItemId,
+      )
+
+    if (!cartItem) {
+      return null
+    }
+
+    items.push({
+      nftId:
+        quoteItem.nftId,
+
+      editionId:
+        quoteItem.editionId,
+
+      tokenId:
+        cartItem.tokenId,
+
+      name:
+        cartItem.name,
+
+      image:
+        structuredClone(
+          cartItem.image,
+        ),
+
+      quantity:
+        quoteItem.quantity,
+
+      unitPriceEth:
+        quoteItem.unitPriceEth,
+
+      subtotalEth:
+        quoteItem.subtotalEth,
+    })
+  }
+
+  return {
+    orderId,
+
+    cartId:
+      cart.id,
+
+    network:
+      quote.network,
+
+    walletAddress:
+      wallet.address,
+
+    walletProvider:
+      wallet.provider,
+
+    items,
+
+    subtotalEth:
+      quote.subtotalEth,
+
+    discountEth:
+      quote.discountEth,
+
+    networkFeeEth:
+      quote.networkFeeEth,
+
+    totalEth:
+      quote.totalEth,
+  }
+}
+
+function createTransactionReference(
+  orderId: string,
+): `0x${string}` {
+  let hash =
+    2_166_136_261
+
+  for (
+    const character
+    of orderId
+  ) {
+    hash ^=
+      character.charCodeAt(
+        0,
+      )
+
+    hash =
+      Math.imul(
+        hash,
+        16_777_619,
+      )
+  }
+
+  const segment =
+    (hash >>> 0)
+      .toString(16)
+      .padStart(
+        8,
+        '0',
+      )
+
+  return `0x${segment.repeat(
+    8,
+  )}`
+}
+
+function createExplorerUrl(
+  network:
+    BlockchainNetwork,
+  transactionReference:
+    string,
+): string {
+  if (
+    network ===
+    'polygon'
+  ) {
+    return `https://polygonscan.com/tx/${encodeURIComponent(
+      transactionReference,
+    )}`
+  }
+
+  if (
+    network ===
+    'solana'
+  ) {
+    return `https://solscan.io/tx/${encodeURIComponent(
+      transactionReference,
+    )}`
+  }
+
+  return `https://etherscan.io/tx/${encodeURIComponent(
+    transactionReference,
+  )}`
+}
+
+function consumePurchasedItems(
+  state:
+    MockDatabaseState,
+  snapshot:
+    MockOrderSnapshotRecord,
+): void {
+  for (
+    const item
+    of snapshot.items
+  ) {
+    const nft =
+      state.nfts.find(
+        (
+          candidate,
+        ) =>
+          candidate.id ===
+          item.nftId,
+      )
+
+    const edition =
+      nft?.editions.find(
+        (
+          candidate,
+        ) =>
+          candidate.id ===
+          item.editionId,
+      )
+
+    if (
+      !nft ||
+      !edition
+    ) {
+      continue
+    }
+
+    edition.availableQuantity =
+      Math.max(
+        0,
+
+        edition.availableQuantity -
+          item.quantity,
+      )
+
+    const nextMinted =
+      edition.minted +
+      item.quantity
+
+    edition.minted =
+      edition.supply === null
+        ? nextMinted
+        : Math.min(
+            edition.supply,
+            nextMinted,
+          )
+
+    edition.purchasable =
+      edition.availableQuantity >
+      0
+
+    nft.availableQuantity =
+      nft.editions.reduce(
+        (
+          highest,
+          candidate,
+        ) =>
+          Math.max(
+            highest,
+
+            candidate.availableQuantity,
+          ),
+
+        0,
+      )
+
+    nft.version += 1
+  }
+
+  const cart =
+    state.carts.find(
+      (
+        candidate,
+      ) =>
+        candidate.id ===
+        snapshot.cartId,
+    )
+
+  if (cart) {
+    cart.items = []
+
+    cart.version +=
+      1
+
+    cart.updatedAt =
+      new Date().toISOString()
+  }
+}
+
+function confirmOrder(
+  state:
+    MockDatabaseState,
+  order: Order,
+  snapshot:
+    MockOrderSnapshotRecord,
+): void {
+  if (
+    order.status !==
+      'pending' ||
+    order.receipt
+  ) {
+    return
+  }
+
+  const confirmedAt =
+    new Date().toISOString()
+
+  const transactionReference =
+    createTransactionReference(
+      order.id,
+    )
+
+  const receipt:
+    OrderReceipt = {
+      transactionReference,
+
+      explorerUrl:
+        createExplorerUrl(
+          snapshot.network,
+          transactionReference,
+        ),
+
+      walletAddress:
+        snapshot.walletAddress,
+
+      walletProvider:
+        snapshot.walletProvider,
+
+      confirmedAt,
+
+      items:
+        structuredClone(
+          snapshot.items,
+        ),
+
+      subtotalEth:
+        snapshot.subtotalEth,
+
+      discountEth:
+        snapshot.discountEth,
+
+      networkFeeEth:
+        snapshot.networkFeeEth,
+
+      totalEth:
+        snapshot.totalEth,
+    }
+
+  consumePurchasedItems(
+    state,
+    snapshot,
+  )
+
+  order.status =
+    'confirmed'
+
+  order.receipt =
+    receipt
+
+  order.declineReason =
+    undefined
+
+  order.version += 1
+
+  order.updatedAt =
+    confirmedAt
+}
+
+function declineOrder(
+  order: Order,
+): void {
+  if (
+    order.status !==
+    'pending'
+  ) {
+    return
+  }
+
+  const declinedAt =
+    new Date().toISOString()
+
+  order.status =
+    'declined'
+
+  order.receipt =
+    null
+
+  order.declineReason =
+    'A carteira simulada recusou a confirmação da compra.'
+
+  order.version += 1
+
+  order.updatedAt =
+    declinedAt
+}
+
+function maybeFinalizeOrder(
+  state:
+    MockDatabaseState,
+  order: Order,
+): boolean {
+  if (
+    order.status !==
+    'pending'
+  ) {
+    return false
+  }
+
+  const createdAtMs =
+    Date.parse(
+      order.createdAt,
+    )
+
+  if (
+    Number.isFinite(
+      createdAtMs,
+    ) &&
+    Date.now() -
+      createdAtMs <
+      ORDER_CONFIRMATION_DELAY_MS
+  ) {
+    return false
+  }
+
+  const outcome =
+    getActiveScenario()
+      .flags
+      .paymentOutcome ??
+    'confirmed'
+
+  if (
+    outcome ===
+    'declined'
+  ) {
+    declineOrder(
+      order,
+    )
+
+    return true
+  }
+
+  const snapshot =
+    state.idempotencyRecords.find(
+      (
+        candidate,
+      ) =>
+        candidate.orderId ===
+        order.id,
+    )?.orderSnapshot
+
+  if (!snapshot) {
+    declineOrder(
+      order,
+    )
+
+    order.declineReason =
+      'Não foi possível recuperar o snapshot imutável desta compra.'
+
+    return true
+  }
+
+  confirmOrder(
+    state,
+    order,
+    snapshot,
+  )
+
+  return true
+}
+
+function persistIfChanged(
+  state:
+    MockDatabaseState,
+  changed: boolean,
+): void {
+  if (!changed) {
+    return
+  }
+
+  state.revision +=
+    1
+
+  mockDatabase.write(
+    state,
+  )
+}
+
 export const orderHandlers = [
   http.post(
     '*/api/orders',
@@ -527,8 +1025,10 @@ export const orderHandlers = [
             (
               record,
             ) =>
+              record.userId ===
+                authorization.userId &&
               record.key ===
-              idempotencyKey,
+                idempotencyKey,
           )
 
       if (
@@ -560,14 +1060,31 @@ export const orderHandlers = [
             )
 
         if (
-          existingOrder
+          !existingOrder
         ) {
-          return HttpResponse.json(
-            structuredClone(
-              existingOrder,
-            ),
+          return errorResponse(
+            'INTERNAL_ERROR',
+            'A tentativa idempotente existe, mas o pedido não pôde ser recuperado.',
+            500,
           )
         }
+
+        const finalized =
+          maybeFinalizeOrder(
+            authorization.state,
+            existingOrder,
+          )
+
+        persistIfChanged(
+          authorization.state,
+          finalized,
+        )
+
+        return HttpResponse.json(
+          structuredClone(
+            existingOrder,
+          ),
+        )
       }
 
       const quote =
@@ -647,8 +1164,8 @@ export const orderHandlers = [
       const now =
         new Date().toISOString()
 
-      const order: Order =
-        {
+      const order:
+        Order = {
           id: `order-${authorization.userId}-${authorization.state.revision + 1}`,
 
           userId:
@@ -670,6 +1187,22 @@ export const orderHandlers = [
             null,
         }
 
+      const snapshot =
+        createOrderSnapshot(
+          authorization.state,
+          order.id,
+          payload.quoteId,
+          payload.walletId,
+        )
+
+      if (!snapshot) {
+        return errorResponse(
+          'INTERNAL_ERROR',
+          'Não foi possível criar o snapshot imutável da compra.',
+          500,
+        )
+      }
+
       authorization
         .state
         .orders
@@ -684,11 +1217,18 @@ export const orderHandlers = [
           key:
             idempotencyKey,
 
+          userId:
+            authorization
+              .userId,
+
           requestFingerprint:
             fingerprint,
 
           orderId:
             order.id,
+
+          orderSnapshot:
+            snapshot,
         })
 
       authorization
@@ -716,6 +1256,194 @@ export const orderHandlers = [
         {
           status: 201,
         },
+      )
+    },
+  ),
+
+  http.get(
+    '*/api/orders/recovery/:idempotencyKey',
+
+    async ({
+      request,
+      params,
+    }) => {
+      const scenarioResponse =
+        await applyNetworkScenario(
+          'orders',
+        )
+
+      if (
+        scenarioResponse
+      ) {
+        return scenarioResponse
+      }
+
+      const authorization =
+        authorizeMockRequest(
+          request,
+        )
+
+      if (
+        !authorization.authorized
+      ) {
+        return authorization.response
+      }
+
+      const idempotencyKey =
+        typeof params.idempotencyKey ===
+        'string'
+          ? params.idempotencyKey
+          : undefined
+
+      if (!idempotencyKey) {
+        return errorResponse(
+          'VALIDATION_ERROR',
+          'A chave de recuperação é inválida.',
+          422,
+        )
+      }
+
+      const record =
+        authorization
+          .state
+          .idempotencyRecords
+          .find(
+            (
+              candidate,
+            ) =>
+              candidate.userId ===
+                authorization.userId &&
+              candidate.key ===
+                idempotencyKey,
+          )
+
+      if (!record) {
+        return errorResponse(
+          'NOT_FOUND',
+          'Nenhum pedido pendente foi encontrado.',
+          404,
+        )
+      }
+
+      const order =
+        authorization
+          .state
+          .orders
+          .find(
+            (
+              candidate,
+            ) =>
+              candidate.id ===
+              record.orderId,
+          )
+
+      if (!order) {
+        return errorResponse(
+          'NOT_FOUND',
+          'O pedido associado não foi encontrado.',
+          404,
+        )
+      }
+
+      const finalized =
+        maybeFinalizeOrder(
+          authorization.state,
+          order,
+        )
+
+      persistIfChanged(
+        authorization.state,
+        finalized,
+      )
+
+      return HttpResponse.json(
+        structuredClone(
+          order,
+        ),
+      )
+    },
+  ),
+
+  http.get(
+    '*/api/orders/:orderId',
+
+    async ({
+      request,
+      params,
+    }) => {
+      const scenarioResponse =
+        await applyNetworkScenario(
+          'orders',
+        )
+
+      if (
+        scenarioResponse
+      ) {
+        return scenarioResponse
+      }
+
+      const authorization =
+        authorizeMockRequest(
+          request,
+        )
+
+      if (
+        !authorization.authorized
+      ) {
+        return authorization.response
+      }
+
+      const orderId =
+        typeof params.orderId ===
+        'string'
+          ? params.orderId
+          : undefined
+
+      if (!orderId) {
+        return errorResponse(
+          'VALIDATION_ERROR',
+          'O pedido informado é inválido.',
+          422,
+        )
+      }
+
+      const order =
+        authorization
+          .state
+          .orders
+          .find(
+            (
+              candidate,
+            ) =>
+              candidate.id ===
+                orderId &&
+              candidate.userId ===
+                authorization.userId,
+          )
+
+      if (!order) {
+        return errorResponse(
+          'NOT_FOUND',
+          'Pedido não encontrado.',
+          404,
+        )
+      }
+
+      const finalized =
+        maybeFinalizeOrder(
+          authorization.state,
+          order,
+        )
+
+      persistIfChanged(
+        authorization.state,
+        finalized,
+      )
+
+      return HttpResponse.json(
+        structuredClone(
+          order,
+        ),
       )
     },
   ),

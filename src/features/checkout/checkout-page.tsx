@@ -18,7 +18,16 @@ import {
   buildQuoteRequest,
   hasQuoteChanged,
 } from '@/features/checkout/checkout-quote'
-import { useCreateOrderMutation } from '@/features/orders/orders-query'
+import { recoverOrder } from '@/features/orders/orders-api'
+import {
+  clearPendingOrderRecovery,
+  persistPendingOrderRecovery,
+  readPendingOrderRecovery,
+} from '@/features/orders/pending-order-recovery'
+import {
+  useCreateOrderMutation,
+  usePendingOrderRecoveryQuery,
+} from '@/features/orders/orders-query'
 import { createQuote } from '@/features/quote/quote-api'
 import { useWalletsQuery } from '@/features/wallets/wallets-query'
 import type {
@@ -38,18 +47,14 @@ const providerLabels: Record<
   string
 > = {
   metamask: 'MetaMask',
-  walletconnect:
-    'WalletConnect',
-  coinbase:
-    'Coinbase Wallet',
+  walletconnect: 'WalletConnect',
+  coinbase: 'Coinbase Wallet',
 }
 
 function createIdempotencyKey(): string {
   if (
-    typeof crypto !==
-      'undefined' &&
-    typeof crypto.randomUUID ===
-      'function'
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
   ) {
     return `checkout-${crypto.randomUUID()}`
   }
@@ -67,19 +72,15 @@ function getQuoteErrorMessage(
   }
 
   if (
-    error instanceof
-      ApiClientError &&
-    error.code ===
-      'AVAILABILITY_CONFLICT'
+    error instanceof ApiClientError &&
+    error.code === 'AVAILABILITY_CONFLICT'
   ) {
     return 'O preço ou a disponibilidade de um NFT mudou. Revise o carrinho antes de continuar.'
   }
 
   if (
-    error instanceof
-      ApiClientError &&
-    error.code ===
-      'CONFLICT'
+    error instanceof ApiClientError &&
+    error.code === 'CONFLICT'
   ) {
     return 'O carrinho mudou enquanto a cotação era criada. Atualize os valores e revise os itens.'
   }
@@ -94,26 +95,25 @@ function getOrderErrorMessage(
     return null
   }
 
-  if (
-    error instanceof
-    ApiClientError
-  ) {
+  if (error instanceof ApiClientError) {
     if (
-      error.code ===
-        'AVAILABILITY_CONFLICT' ||
-      error.code ===
-        'CONFLICT'
+      error.code === 'AVAILABILITY_CONFLICT' ||
+      error.code === 'CONFLICT'
     ) {
       return 'A compra não foi confirmada porque os valores ou a disponibilidade mudaram. Revise a nova cotação.'
     }
 
     if (
-      error.code ===
-        'TIMEOUT' ||
-      error.code ===
-        'NETWORK_ERROR'
+      error.code === 'IDEMPOTENCY_CONFLICT'
     ) {
-      return 'Não foi possível confirmar a resposta da compra. Tente novamente; a mesma operação será reutilizada com segurança.'
+      return 'Esta tentativa de compra já foi usada com outros dados. Revise o pagamento antes de tentar novamente.'
+    }
+
+    if (
+      error.code === 'TIMEOUT' ||
+      error.code === 'NETWORK_ERROR'
+    ) {
+      return 'A resposta da compra foi interrompida. Estamos preservando a mesma tentativa para recuperar o pedido sem duplicá-lo.'
     }
   }
 
@@ -132,11 +132,7 @@ function validateCollector(
     return 'Preencha os dados obrigatórios do colecionador.'
   }
 
-  if (
-    !collector.email.includes(
-      '@',
-    )
-  ) {
+  if (!collector.email.includes('@')) {
     return 'Informe um e-mail válido.'
   }
 
@@ -154,18 +150,14 @@ function CheckoutContent({
   wallets,
   user,
 }: CheckoutContentProps) {
-  const navigate =
-    useNavigate()
+  const navigate = useNavigate()
 
   const createOrderMutation =
     useCreateOrderMutation()
 
   const primaryWallet =
     wallets.items.find(
-      (
-        wallet,
-      ) =>
-        wallet.primary,
+      (wallet) => wallet.primary,
     ) ??
     wallets.items[0] ??
     null
@@ -173,115 +165,112 @@ function CheckoutContent({
   const [
     selectedWalletId,
     setSelectedWalletId,
-  ] =
-    useState<
-      string | null
-    >(
-      primaryWallet?.id ??
-        null,
-    )
+  ] = useState<string | null>(
+    primaryWallet?.id ?? null,
+  )
 
   const selectedWallet =
     wallets.items.find(
-      (
-        wallet,
-      ) =>
-        wallet.id ===
-        selectedWalletId,
-    ) ??
-    primaryWallet
+      (wallet) =>
+        wallet.id === selectedWalletId,
+    ) ?? primaryWallet
 
   const [
     collector,
     setCollector,
-  ] =
-    useState<CollectorCheckoutDetails>(
-      () => ({
-        displayName:
-          user.displayName,
+  ] = useState<CollectorCheckoutDetails>(
+    () => ({
+      displayName:
+        user.displayName,
 
-        username:
-          user.username,
+      username:
+        user.username,
 
-        email:
-          user.email,
+      email:
+        user.email,
 
-        profileName:
-          primaryWallet
-            ?.profileName ??
-          '',
+      profileName:
+        primaryWallet?.profileName ?? '',
 
-        ensName:
-          primaryWallet
-            ?.ensName ??
-          '',
+      ensName:
+        primaryWallet?.ensName ?? '',
 
-        note: '',
-      }),
-    )
+      note: '',
+    }),
+  )
 
   const [
     couponInput,
     setCouponInput,
-  ] =
-    useState('')
+  ] = useState('')
 
   const [
     appliedCoupon,
     setAppliedCoupon,
-  ] =
-    useState<
-      string | undefined
-    >(undefined)
+  ] = useState<string | undefined>(
+    undefined,
+  )
 
   const [
     quote,
     setQuote,
-  ] =
-    useState<
-      QuoteResponse | null
-    >(null)
+  ] = useState<QuoteResponse | null>(
+    null,
+  )
 
   const [
     quoteLoading,
     setQuoteLoading,
-  ] =
-    useState(false)
+  ] = useState(false)
 
   const [
     quoteError,
     setQuoteError,
-  ] =
-    useState<
-      Error | null
-    >(null)
+  ] = useState<Error | null>(
+    null,
+  )
 
   const [
     reviewNotice,
     setReviewNotice,
-  ] =
-    useState<
-      string | null
-    >(null)
+  ] = useState<string | null>(
+    null,
+  )
 
   const [
     formError,
     setFormError,
-  ] =
-    useState<
-      string | null
-    >(null)
+  ] = useState<string | null>(
+    null,
+  )
 
   const [
     quoteRefreshNonce,
     setQuoteRefreshNonce,
-  ] =
-    useState(0)
+  ] = useState(0)
+
+  const [
+    pendingRecoveryKey,
+    setPendingRecoveryKey,
+  ] = useState<string | null>(
+    () =>
+      readPendingOrderRecovery(
+        user.id,
+      )?.idempotencyKey ?? null,
+  )
 
   const idempotencyKeyRef =
-    useRef<
-      string | null
-    >(null)
+    useRef<string | null>(
+      pendingRecoveryKey,
+    )
+
+  const submissionLockRef =
+    useRef(false)
+
+  const recoveryQuery =
+    usePendingOrderRecoveryQuery(
+      pendingRecoveryKey,
+    )
 
   const quoteSignature =
     selectedWallet
@@ -291,9 +280,7 @@ function CheckoutContent({
 
           items:
             cart.items.map(
-              (
-                item,
-              ) => ({
+              (item) => ({
                 id:
                   item.id,
 
@@ -321,8 +308,7 @@ function CheckoutContent({
             selectedWallet.network,
 
           coupon:
-            appliedCoupon ??
-            '',
+            appliedCoupon ?? '',
 
           refresh:
             quoteRefreshNonce,
@@ -330,72 +316,111 @@ function CheckoutContent({
       : null
 
   useEffect(() => {
-  if (
-    !selectedWallet ||
-    cart.items.length === 0 ||
-    !quoteSignature
-  ) {
-    return
-  }
+    if (
+      !selectedWallet ||
+      cart.items.length === 0 ||
+      !quoteSignature
+    ) {
+      return
+    }
 
-  let active = true
+    let active = true
 
-  void buildQuoteRequest(
-    cart,
-    selectedWallet,
-    appliedCoupon,
-  )
-    .then((request) => {
-      if (!active) {
-        return null
-      }
+    void buildQuoteRequest(
+      cart,
+      selectedWallet,
+      appliedCoupon,
+    )
+      .then((request) => {
+        if (!active) {
+          return null
+        }
 
-      setQuoteLoading(true)
-      setQuoteError(null)
+        setQuoteLoading(true)
+        setQuoteError(null)
 
-      return createQuote(request)
-    })
-    .then((nextQuote) => {
-      if (
-        !active ||
-        !nextQuote
-      ) {
-        return
-      }
+        return createQuote(
+          request,
+        )
+      })
+      .then((nextQuote) => {
+        if (
+          !active ||
+          !nextQuote
+        ) {
+          return
+        }
 
-      setQuote(nextQuote)
-      setReviewNotice(null)
-    })
-    .catch((error: unknown) => {
-      if (!active) {
-        return
-      }
+        setQuote(
+          nextQuote,
+        )
 
-      setQuoteError(
-        error instanceof Error
-          ? error
-          : new Error(
-              'Quote request failed.',
-            ),
+        setReviewNotice(
+          null,
+        )
+      })
+      .catch(
+        (error: unknown) => {
+          if (!active) {
+            return
+          }
+
+          setQuoteError(
+            error instanceof Error
+              ? error
+              : new Error(
+                  'Quote request failed.',
+                ),
+          )
+
+          setQuote(
+            null,
+          )
+        },
       )
+      .finally(() => {
+        if (active) {
+          setQuoteLoading(
+            false,
+          )
+        }
+      })
 
-      setQuote(null)
-    })
-    .finally(() => {
-      if (active) {
-        setQuoteLoading(false)
-      }
-    })
+    return () => {
+      active = false
+    }
+  }, [
+    appliedCoupon,
+    cart,
+    quoteSignature,
+    selectedWallet,
+  ])
 
-  return () => {
-    active = false
-  }
-}, [
-  appliedCoupon,
-  cart,
-  quoteSignature,
-  selectedWallet,
-])
+  useEffect(() => {
+    const recoveredOrder =
+      recoveryQuery.data
+
+    if (!recoveredOrder) {
+      return
+    }
+
+    clearPendingOrderRecovery()
+
+    void navigate({
+      to:
+        '/orders/$orderId',
+
+      params: {
+        orderId:
+          recoveredOrder.id,
+      },
+
+      replace: true,
+    })
+  }, [
+    navigate,
+    recoveryQuery.data,
+  ])
 
   function handleWalletSelection(
     wallet: CollectorWallet,
@@ -405,17 +430,14 @@ function CheckoutContent({
     )
 
     setCollector(
-      (
-        current,
-      ) => ({
+      (current) => ({
         ...current,
 
         profileName:
           wallet.profileName,
 
         ensName:
-          wallet.ensName ??
-          '',
+          wallet.ensName ?? '',
       }),
     )
 
@@ -427,14 +449,26 @@ function CheckoutContent({
       null,
     )
 
-    idempotencyKeyRef.current =
-      null
+    createOrderMutation.reset()
   }
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault()
+
+    if (
+      submissionLockRef.current
+    ) {
+      return
+    }
+
+    if (
+      pendingRecoveryKey &&
+      recoveryQuery.isFetching
+    ) {
+      return
+    }
 
     if (!selectedWallet) {
       setFormError(
@@ -457,6 +491,9 @@ function CheckoutContent({
       return
     }
 
+    submissionLockRef.current =
+      true
+
     setFormError(
       null,
     )
@@ -471,9 +508,6 @@ function CheckoutContent({
 
     createOrderMutation.reset()
 
-    let freshQuote:
-      QuoteResponse
-
     try {
       const freshRequest =
         await buildQuoteRequest(
@@ -482,65 +516,56 @@ function CheckoutContent({
           appliedCoupon,
         )
 
-      freshQuote =
+      const freshQuote =
         await createQuote(
           freshRequest,
         )
-    } catch (
-      error: unknown
-    ) {
-      setQuoteError(
-        error instanceof
-          Error
-          ? error
-          : new Error(
-              'Quote revalidation failed.',
-            ),
-      )
 
-      return
-    }
+      if (!quote) {
+        setQuote(
+          freshQuote,
+        )
 
-    if (!quote) {
-      setQuote(
-        freshQuote,
-      )
+        setReviewNotice(
+          'A cotação foi atualizada. Revise os valores antes de confirmar a compra.',
+        )
 
-      setReviewNotice(
-        'A cotação foi atualizada. Revise os valores antes de confirmar a compra.',
-      )
+        return
+      }
 
-      return
-    }
+      if (
+        hasQuoteChanged(
+          quote,
+          freshQuote,
+        )
+      ) {
+        setQuote(
+          freshQuote,
+        )
 
-    if (
-      hasQuoteChanged(
-        quote,
-        freshQuote,
-      )
-    ) {
-      setQuote(
-        freshQuote,
-      )
+        setReviewNotice(
+          'Os preços, o desconto ou a disponibilidade mudaram. Revise a nova cotação antes de confirmar.',
+        )
 
-      setReviewNotice(
-        'Os preços, o desconto ou a disponibilidade mudaram. Revise a nova cotação antes de confirmar.',
-      )
+        return
+      }
+
+      const idempotencyKey =
+        idempotencyKeyRef.current ??
+        createIdempotencyKey()
 
       idempotencyKeyRef.current =
-        null
+        idempotencyKey
 
-      return
-    }
+      persistPendingOrderRecovery(
+        user.id,
+        idempotencyKey,
+      )
 
-    const idempotencyKey =
-      idempotencyKeyRef.current ??
-      createIdempotencyKey()
+      setPendingRecoveryKey(
+        idempotencyKey,
+      )
 
-    idempotencyKeyRef.current =
-      idempotencyKey
-
-    try {
       const order =
         await createOrderMutation.mutateAsync(
           {
@@ -584,8 +609,15 @@ function CheckoutContent({
       idempotencyKeyRef.current =
         null
 
+      clearPendingOrderRecovery()
+
+      setPendingRecoveryKey(
+        null,
+      )
+
       await navigate({
-        to: '/orders/$orderId',
+        to:
+          '/orders/$orderId',
 
         params: {
           orderId:
@@ -595,21 +627,74 @@ function CheckoutContent({
     } catch (
       error: unknown
     ) {
-      if (
-        !(
-          error instanceof
-          ApiClientError
-        ) ||
+      const uncertainOutcome =
+        error instanceof
+          ApiClientError &&
         (
-          error.code !==
-            'TIMEOUT' &&
-          error.code !==
+          error.code ===
+            'TIMEOUT' ||
+          error.code ===
             'NETWORK_ERROR'
         )
+
+      if (
+        uncertainOutcome &&
+        idempotencyKeyRef.current
       ) {
+        try {
+          const recoveredOrder =
+            await recoverOrder(
+              idempotencyKeyRef.current,
+            )
+
+          clearPendingOrderRecovery()
+
+          setPendingRecoveryKey(
+            null,
+          )
+
+          idempotencyKeyRef.current =
+            null
+
+          await navigate({
+            to:
+              '/orders/$orderId',
+
+            params: {
+              orderId:
+                recoveredOrder.id,
+            },
+          })
+
+          return
+        } catch {
+          // A chave permanece persistida.
+          // A recuperação será tentada novamente após reconexão.
+        }
+      }
+
+      if (!uncertainOutcome) {
         idempotencyKeyRef.current =
           null
+
+        clearPendingOrderRecovery()
+
+        setPendingRecoveryKey(
+          null,
+        )
       }
+
+      if (
+        error instanceof Error &&
+        !createOrderMutation.error
+      ) {
+        setQuoteError(
+          error,
+        )
+      }
+    } finally {
+      submissionLockRef.current =
+        false
     }
   }
 
@@ -633,9 +718,7 @@ function CheckoutContent({
 
   const hasAvailabilityConflict =
     cart.items.some(
-      (
-        item,
-      ) =>
+      (item) =>
         item.availabilityChanged ||
         item.quantity >
           item.availableQuantity,
@@ -705,15 +788,11 @@ function CheckoutContent({
                   event,
                 ) => {
                   setCollector(
-                    (
-                      current,
-                    ) => ({
+                    (current) => ({
                       ...current,
 
                       displayName:
-                        event
-                          .target
-                          .value,
+                        event.target.value,
                     }),
                   )
                 }}
@@ -737,15 +816,11 @@ function CheckoutContent({
                   event,
                 ) => {
                   setCollector(
-                    (
-                      current,
-                    ) => ({
+                    (current) => ({
                       ...current,
 
                       username:
-                        event
-                          .target
-                          .value,
+                        event.target.value,
                     }),
                   )
                 }}
@@ -770,15 +845,11 @@ function CheckoutContent({
                   event,
                 ) => {
                   setCollector(
-                    (
-                      current,
-                    ) => ({
+                    (current) => ({
                       ...current,
 
                       email:
-                        event
-                          .target
-                          .value,
+                        event.target.value,
                     }),
                   )
                 }}
@@ -802,15 +873,11 @@ function CheckoutContent({
                   event,
                 ) => {
                   setCollector(
-                    (
-                      current,
-                    ) => ({
+                    (current) => ({
                       ...current,
 
                       profileName:
-                        event
-                          .target
-                          .value,
+                        event.target.value,
                     }),
                   )
                 }}
@@ -831,15 +898,11 @@ function CheckoutContent({
                   event,
                 ) => {
                   setCollector(
-                    (
-                      current,
-                    ) => ({
+                    (current) => ({
                       ...current,
 
                       ensName:
-                        event
-                          .target
-                          .value,
+                        event.target.value,
                     }),
                   )
                 }}
@@ -854,22 +917,17 @@ function CheckoutContent({
               <textarea
                 rows={5}
                 value={
-                  collector.note ??
-                  ''
+                  collector.note ?? ''
                 }
                 onChange={(
                   event,
                 ) => {
                   setCollector(
-                    (
-                      current,
-                    ) => ({
+                    (current) => ({
                       ...current,
 
                       note:
-                        event
-                          .target
-                          .value,
+                        event.target.value,
                     }),
                   )
                 }}
@@ -889,14 +947,10 @@ function CheckoutContent({
 
           <div className="mt-5 space-y-3">
             {cart.items.map(
-              (
-                item,
-              ) => {
+              (item) => {
                 const quoteItem =
                   quote?.items.find(
-                    (
-                      candidate,
-                    ) =>
+                    (candidate) =>
                       candidate.cartItemId ===
                       item.id,
                   )
@@ -910,20 +964,16 @@ function CheckoutContent({
                   >
                     <img
                       src={
-                        item.image
-                          .url
+                        item.image.url
                       }
                       alt={
-                        item.image
-                          .alt
+                        item.image.alt
                       }
                       width={
-                        item.image
-                          .width
+                        item.image.width
                       }
                       height={
-                        item.image
-                          .height
+                        item.image.height
                       }
                       className="aspect-square w-14 rounded-control object-cover"
                     />
@@ -978,8 +1028,7 @@ function CheckoutContent({
                   event,
                 ) => {
                   setCouponInput(
-                    event.target
-                      .value,
+                    event.target.value,
                   )
                 }}
                 className="h-10 min-w-0 flex-1"
@@ -1001,45 +1050,42 @@ function CheckoutContent({
                   )
 
                   setQuoteRefreshNonce(
-                    (
-                      current,
-                    ) =>
-                      current +
-                      1,
+                    (current) =>
+                      current + 1,
                   )
 
-                  idempotencyKeyRef.current =
-                    null
+                  setReviewNotice(
+                    null,
+                  )
+
+                  setQuoteError(
+                    null,
+                  )
                 }}
               >
                 Aplicar
               </Button>
             </div>
 
-            {quote?.coupon
-              .status ===
+            {quote?.coupon.status ===
               'applied' && (
               <p className="mt-2 text-xs text-primary">
                 Cupom{' '}
                 {
-                  quote
-                    .coupon
-                    .code
+                  quote.coupon.code
                 }{' '}
                 aplicado.
               </p>
             )}
 
-            {quote?.coupon
-              .status ===
+            {quote?.coupon.status ===
               'invalid' && (
               <p className="mt-2 text-xs text-destructive">
                 Código promocional inválido.
               </p>
             )}
 
-            {quote?.coupon
-              .status ===
+            {quote?.coupon.status ===
               'expired' && (
               <p className="mt-2 text-xs text-destructive">
                 Este código promocional expirou.
@@ -1122,8 +1168,7 @@ function CheckoutContent({
               </Button>
             </div>
 
-            {wallets.items
-              .length ===
+            {wallets.items.length ===
             0 ? (
               <div className="mt-3 rounded-control border border-dashed p-4 text-sm text-muted-foreground">
                 Nenhuma carteira cadastrada.{' '}
@@ -1138,9 +1183,7 @@ function CheckoutContent({
             ) : (
               <div className="mt-3 grid gap-3">
                 {wallets.items.map(
-                  (
-                    wallet,
-                  ) => (
+                  (wallet) => (
                     <button
                       key={
                         wallet.id
@@ -1181,8 +1224,7 @@ function CheckoutContent({
                           <p className="mt-1 truncate text-xs text-muted-foreground">
                             {
                               providerLabels[
-                                wallet
-                                  .provider
+                                wallet.provider
                               ]
                             }{' '}
                             ·{' '}
@@ -1208,6 +1250,13 @@ function CheckoutContent({
               Atualizando cotação...
             </p>
           )}
+
+          {pendingRecoveryKey &&
+            recoveryQuery.isFetching && (
+              <p className="mt-4 text-xs text-muted-foreground">
+                Verificando se uma tentativa anterior já criou o pedido...
+              </p>
+            )}
 
           {quoteErrorMessage && (
             <p
@@ -1236,7 +1285,9 @@ function CheckoutContent({
               role="alert"
               className="mt-4 text-xs text-destructive"
             >
-              {formError}
+              {
+                formError
+              }
             </p>
           )}
 
@@ -1260,12 +1311,15 @@ function CheckoutContent({
               !quote ||
               quoteLoading ||
               hasAvailabilityConflict ||
-              createOrderMutation.isPending
+              createOrderMutation.isPending ||
+              recoveryQuery.isFetching
             }
           >
             {createOrderMutation.isPending
               ? 'Confirmando...'
-              : 'Confirmar compra'}
+              : recoveryQuery.isFetching
+                ? 'Recuperando pedido...'
+                : 'Confirmar compra'}
           </Button>
         </aside>
       </div>
@@ -1303,6 +1357,7 @@ export function CheckoutPage() {
 
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem]">
             <div className="skeleton-shimmer h-96 rounded-panel bg-card" />
+
             <div className="skeleton-shimmer h-[34rem] rounded-panel bg-card" />
           </div>
         </div>
@@ -1350,8 +1405,7 @@ export function CheckoutPage() {
   }
 
   if (
-    cartQuery.data
-      .items.length ===
+    cartQuery.data.items.length ===
     0
   ) {
     return (
@@ -1366,6 +1420,13 @@ export function CheckoutPage() {
             variant="heading"
           >
             Seu carrinho está vazio
+          </Typography>
+
+          <Typography
+            tone="muted"
+            className="mt-3"
+          >
+            Adicione pelo menos um NFT ao carrinho antes de continuar para o pagamento.
           </Typography>
 
           <Button
