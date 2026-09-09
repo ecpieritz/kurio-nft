@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 
+import { getSessionToken } from '@/lib/auth/session-token'
 import { normalizeApiError } from '@/lib/api/error'
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -25,6 +26,16 @@ export const apiClient = axios.create({
   headers: {
     Accept: 'application/json',
   },
+})
+
+apiClient.interceptors.request.use((config) => {
+  const sessionToken = getSessionToken()
+
+  if (sessionToken) {
+    config.headers.set('Authorization', `Bearer ${sessionToken}`)
+  }
+
+  return config
 })
 
 apiClient.interceptors.response.use(

@@ -13,6 +13,10 @@ export interface SessionResponse {
   expiresAt: ISODateString
 }
 
+export interface LoginResponse extends SessionResponse {
+  sessionToken: string
+}
+
 export interface LoginRequest {
   email: string
   password: string
