@@ -8,6 +8,7 @@ import {
 
 import { AppShell } from '@/components/layout/app-shell'
 import { SignUpPage } from '@/features/auth/registration/sign-up-page'
+import { CartPage } from '@/features/cart/cart-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { validateCatalogSearch } from '@/features/catalog/catalog-search'
 import { FavoritesPage } from '@/features/favorites/favorites-page'
@@ -32,7 +33,10 @@ interface LoginSearch {
 }
 
 function validateLoginSearch(
-  search: Record<string, unknown>,
+  search: Record<
+    string,
+    unknown
+  >,
 ): LoginSearch {
   const redirectTarget =
     search.redirect
@@ -52,72 +56,89 @@ function validateLoginSearch(
 }
 
 const rootRoute =
-  createRootRouteWithContext<RouterContext>()({
-    component: AppShell,
-    errorComponent: RouteError,
-    notFoundComponent: NotFoundRoute,
+  createRootRouteWithContext<RouterContext>()(
+    {
+      component: AppShell,
+      errorComponent:
+        RouteError,
+
+      notFoundComponent:
+        NotFoundRoute,
+    },
+  )
+
+const publicRoute =
+  createRoute({
+    getParentRoute: () =>
+      rootRoute,
+
+    id: '_public',
+    component: Outlet,
   })
 
-const publicRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  id: '_public',
-  component: Outlet,
-})
+const protectedRoute =
+  createRoute({
+    getParentRoute: () =>
+      rootRoute,
 
-const protectedRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  id: '_authenticated',
+    id: '_authenticated',
 
-  beforeLoad: ({
-    context,
-    location,
-  }) => {
-    if (
-      context.auth.status !==
-      'authenticated'
-    ) {
-      const returnTo =
-        rememberReturnTo(
-          location.href,
-        ) ?? paths.home
+    beforeLoad: ({
+      context,
+      location,
+    }) => {
+      if (
+        context.auth
+          .status !==
+        'authenticated'
+      ) {
+        const returnTo =
+          rememberReturnTo(
+            location.href,
+          ) ?? paths.home
 
-      // TanStack Router models redirects as throwable control-flow objects.
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw redirect({
-        to: paths.login,
+        // TanStack Router models redirects as throwable control-flow objects.
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw redirect({
+          to: paths.login,
 
-        search: {
-          redirect: returnTo,
-        },
+          search: {
+            redirect:
+              returnTo,
+          },
 
-        replace: true,
-      })
-    }
-  },
+          replace: true,
+        })
+      }
+    },
 
-  component: Outlet,
-})
+    component: Outlet,
+  })
 
-const homeRoute = createRoute({
-  getParentRoute: () =>
-    publicRoute,
+const homeRoute =
+  createRoute({
+    getParentRoute: () =>
+      publicRoute,
 
-  path: paths.home,
+    path: paths.home,
 
-  component: HomeRoute,
-})
+    component:
+      HomeRoute,
+  })
 
 const marketplaceRoute =
   createRoute({
     getParentRoute: () =>
       publicRoute,
 
-    path: paths.marketplace,
+    path:
+      paths.marketplace,
 
     validateSearch:
       validateCatalogSearch,
 
-    component: CatalogPage,
+    component:
+      CatalogPage,
   })
 
 const nftDetailsRoute =
@@ -125,41 +146,41 @@ const nftDetailsRoute =
     getParentRoute: () =>
       publicRoute,
 
-    path: paths.nftDetails,
+    path:
+      paths.nftDetails,
 
-    component: NftDetailsPage,
+    component:
+      NftDetailsPage,
   })
 
-const cartRoute = createRoute({
-  getParentRoute: () =>
-    publicRoute,
+const cartRoute =
+  createRoute({
+    getParentRoute: () =>
+      publicRoute,
 
-  path: paths.cart,
+    path: paths.cart,
 
-  component: () => (
-    <RoutePlaceholder
-      title="NFT cart"
-      description="The cart remains public so visitor items can survive authentication."
-    />
-  ),
-})
+    component:
+      CartPage,
+  })
 
-const loginRoute = createRoute({
-  getParentRoute: () =>
-    publicRoute,
+const loginRoute =
+  createRoute({
+    getParentRoute: () =>
+      publicRoute,
 
-  path: paths.login,
+    path: paths.login,
 
-  validateSearch:
-    validateLoginSearch,
+    validateSearch:
+      validateLoginSearch,
 
-  component: () => (
-    <RoutePlaceholder
-      title="Sign in"
-      description="Authentication will return the collector to the protected page they originally requested."
-    />
-  ),
-})
+    component: () => (
+      <RoutePlaceholder
+        title="Sign in"
+        description="Authentication will return the collector to the protected page they originally requested."
+      />
+    ),
+  })
 
 const signUpRoute =
   createRoute({
@@ -168,7 +189,8 @@ const signUpRoute =
 
     path: paths.signUp,
 
-    component: SignUpPage,
+    component:
+      SignUpPage,
   })
 
 const checkoutRoute =
@@ -176,7 +198,8 @@ const checkoutRoute =
     getParentRoute: () =>
       protectedRoute,
 
-    path: paths.checkout,
+    path:
+      paths.checkout,
 
     component: () => (
       <RoutePlaceholder
@@ -186,50 +209,56 @@ const checkoutRoute =
     ),
   })
 
-const orderRoute = createRoute({
-  getParentRoute: () =>
-    protectedRoute,
+const orderRoute =
+  createRoute({
+    getParentRoute: () =>
+      protectedRoute,
 
-  path: paths.order,
+    path: paths.order,
 
-  component: () => (
-    <RoutePlaceholder
-      title="Order status"
-      description="Pending, confirmed and rejected orders are isolated to the active collector."
-    />
-  ),
-})
+    component: () => (
+      <RoutePlaceholder
+        title="Order status"
+        description="Pending, confirmed and rejected orders are isolated to the active collector."
+      />
+    ),
+  })
 
 const favoritesRoute =
   createRoute({
     getParentRoute: () =>
       protectedRoute,
 
-    path: paths.favorites,
+    path:
+      paths.favorites,
 
-    component: FavoritesPage,
+    component:
+      FavoritesPage,
   })
 
-const profileRoute = createRoute({
-  getParentRoute: () =>
-    protectedRoute,
+const profileRoute =
+  createRoute({
+    getParentRoute: () =>
+      protectedRoute,
 
-  path: paths.profile,
+    path:
+      paths.profile,
 
-  component: () => (
-    <RoutePlaceholder
-      title="Collector profile"
-      description="Profile data, avatar and password settings are protected account resources."
-    />
-  ),
-})
+    component: () => (
+      <RoutePlaceholder
+        title="Collector profile"
+        description="Profile data, avatar and password settings are protected account resources."
+      />
+    ),
+  })
 
 const walletsRoute =
   createRoute({
     getParentRoute: () =>
       protectedRoute,
 
-    path: paths.wallets,
+    path:
+      paths.wallets,
 
     component: () => (
       <RoutePlaceholder
@@ -241,22 +270,26 @@ const walletsRoute =
 
 const routeTree =
   rootRoute.addChildren([
-    publicRoute.addChildren([
-      homeRoute,
-      marketplaceRoute,
-      nftDetailsRoute,
-      cartRoute,
-      loginRoute,
-      signUpRoute,
-    ]),
+    publicRoute.addChildren(
+      [
+        homeRoute,
+        marketplaceRoute,
+        nftDetailsRoute,
+        cartRoute,
+        loginRoute,
+        signUpRoute,
+      ],
+    ),
 
-    protectedRoute.addChildren([
-      checkoutRoute,
-      orderRoute,
-      favoritesRoute,
-      profileRoute,
-      walletsRoute,
-    ]),
+    protectedRoute.addChildren(
+      [
+        checkoutRoute,
+        orderRoute,
+        favoritesRoute,
+        profileRoute,
+        walletsRoute,
+      ],
+    ),
   ])
 
 export const router =
@@ -267,9 +300,14 @@ export const router =
       auth: anonymousAuthContext,
     },
 
-    defaultPreload: 'intent',
-    defaultPreloadStaleTime: 0,
-    scrollRestoration: true,
+    defaultPreload:
+      'intent',
+
+    defaultPreloadStaleTime:
+      0,
+
+    scrollRestoration:
+      true,
   })
 
 declare module '@tanstack/react-router' {
