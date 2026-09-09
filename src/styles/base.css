@@ -69,3 +69,31 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+@keyframes kurio-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@layer utilities {
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skeleton-shimmer::after {
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(235 161 92 / 10%), transparent);
+    animation: kurio-shimmer 1.4s infinite;
+    content: '';
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}

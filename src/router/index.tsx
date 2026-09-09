@@ -8,6 +8,7 @@ import {
 
 import { AppShell } from '@/components/layout/app-shell'
 import { SignUpPage } from '@/features/auth/registration/sign-up-page'
+import { CatalogPage } from '@/features/catalog/catalog-page'
 import { rememberReturnTo, sanitizeReturnTo } from '@/lib/auth/navigation-context'
 import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
@@ -68,12 +69,7 @@ const homeRoute = createRoute({
 const marketplaceRoute = createRoute({
   getParentRoute: () => publicRoute,
   path: paths.marketplace,
-  component: () => (
-    <RoutePlaceholder
-      title="NFT marketplace"
-      description="Catalog search, filters and pagination will be implemented in the catalog feature."
-    />
-  ),
+  component: CatalogPage,
 })
 
 const nftDetailsRoute = createRoute({

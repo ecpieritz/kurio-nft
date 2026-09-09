@@ -73,4 +73,13 @@ export interface NftListRequest {
   pageSize: number
 }
 
-export type NftListResponse = PaginatedResponse<NftSummary>
+export interface NftListFacets {
+  categories: Record<NftCategory, number>
+  networks: Record<BlockchainNetwork, number>
+  minPriceEth: DecimalString
+  maxPriceEth: DecimalString
+}
+
+export interface NftListResponse extends PaginatedResponse<NftSummary> {
+  facets: NftListFacets
+}
