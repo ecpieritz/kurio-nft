@@ -13,7 +13,11 @@ interface RoutePlaceholderProps {
 
 export function HomeRoute() {
   return (
-    <main className="grid min-h-svh place-items-center px-(--page-gutter) py-(--section-space)">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="grid min-h-[calc(100svh-var(--header-height))] place-items-center px-(--page-gutter) py-(--section-space)"
+    >
       <section className="grid w-full max-w-(--content-max) items-center gap-10 rounded-panel border bg-card p-7 shadow-elevated md:grid-cols-[1fr_0.8fr] md:p-12">
         <div>
           <Typography as="p" variant="eyebrow" tone="accent">
@@ -41,7 +45,11 @@ export function HomeRoute() {
 
 export function RoutePlaceholder({ title, description }: RoutePlaceholderProps) {
   return (
-    <main className="grid min-h-svh place-items-center px-(--page-gutter) py-(--section-space)">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="grid min-h-[65svh] place-items-center px-(--page-gutter) py-(--section-space)"
+    >
       <section className="w-full max-w-2xl rounded-panel border bg-card p-8 text-center shadow-elevated">
         <Typography as="h1" variant="heading">
           {title}
@@ -71,7 +79,11 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
     error instanceof Error ? error.message : 'An unexpected navigation error occurred.'
 
   return (
-    <main className="grid min-h-svh place-items-center px-(--page-gutter) py-(--section-space)">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="grid min-h-[65svh] place-items-center px-(--page-gutter) py-(--section-space)"
+    >
       <section
         role="alert"
         className="w-full max-w-2xl rounded-panel border border-destructive bg-card p-8 text-center"

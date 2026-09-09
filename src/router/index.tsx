@@ -6,6 +6,7 @@ import {
   redirect,
 } from '@tanstack/react-router'
 
+import { AppShell } from '@/components/layout/app-shell'
 import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
 import { paths } from '@/router/paths'
@@ -27,7 +28,7 @@ function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
 }
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: Outlet,
+  component: AppShell,
   errorComponent: RouteError,
   notFoundComponent: NotFoundRoute,
 })

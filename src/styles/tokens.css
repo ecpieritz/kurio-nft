@@ -74,6 +74,7 @@
   --duration-normal: 240ms;
 
   /* Layout rhythm */
+  --header-height: 4.25rem;
   --page-gutter: clamp(1rem, 4vw, 4.5rem);
   --section-space: clamp(3rem, 8vw, 7.5rem);
   --content-max: 75rem;
