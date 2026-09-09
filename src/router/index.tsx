@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-router'
 
 import { AppShell } from '@/components/layout/app-shell'
+import { SignUpPage } from '@/features/auth/registration/sign-up-page'
 import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
 import { paths } from '@/router/paths'
@@ -110,12 +111,7 @@ const loginRoute = createRoute({
 const signUpRoute = createRoute({
   getParentRoute: () => publicRoute,
   path: paths.signUp,
-  component: () => (
-    <RoutePlaceholder
-      title="Create collector profile"
-      description="Account registration and API validation will be added to this public route."
-    />
-  ),
+  component: SignUpPage,
 })
 
 const checkoutRoute = createRoute({

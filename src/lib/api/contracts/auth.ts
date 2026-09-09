@@ -24,6 +24,11 @@ export interface RegisterRequest {
   password: string
 }
 
+export interface RegisterResponse {
+  user: SessionUser
+  createdAt: ISODateString
+}
+
 export interface LogoutResponse {
   success: true
 }

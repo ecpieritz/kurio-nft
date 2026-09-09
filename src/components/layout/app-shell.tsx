@@ -6,6 +6,7 @@ import { SiteHeader } from '@/components/layout/site-header'
 
 export function AppShell() {
   const pathname = useLocation({ select: (location) => location.pathname })
+  const isAuthRoute = pathname === '/login' || pathname === '/sign-up'
   const hasMobileNavigation =
     pathname === '/' ||
     pathname === '/marketplace' ||
@@ -22,7 +23,7 @@ export function AppShell() {
       </a>
       <SiteHeader />
       <Outlet />
-      <SiteFooter />
+      {!isAuthRoute && <SiteFooter />}
       <MobileNavigation />
     </div>
   )
