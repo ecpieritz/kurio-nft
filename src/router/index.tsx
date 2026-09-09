@@ -8,11 +8,13 @@ import {
 
 import { AppShell } from '@/components/layout/app-shell'
 import { SignUpPage } from '@/features/auth/registration/sign-up-page'
+import { LoginPage } from '@/features/auth/session/login-page'
 import { CartPage } from '@/features/cart/cart-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { validateCatalogSearch } from '@/features/catalog/catalog-search'
 import { CheckoutPage } from '@/features/checkout/checkout-page'
 import { FavoritesPage } from '@/features/favorites/favorites-page'
+import { HomePage } from '@/features/home/home-page'
 import { NftDetailsPage } from '@/features/nft/nft-details-page'
 import { OrderPage } from '@/features/orders/order-page'
 import { ProfilePage } from '@/features/profile/profile-page'
@@ -25,10 +27,8 @@ import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
 import { paths } from '@/router/paths'
 import {
-  HomeRoute,
   NotFoundRoute,
   RouteError,
-  RoutePlaceholder,
 } from '@/router/route-components'
 
 interface LoginSearch {
@@ -37,10 +37,11 @@ interface LoginSearch {
 }
 
 function validateLoginSearch(
-  search: Record<
-    string,
-    unknown
-  >,
+  search:
+    Record<
+      string,
+      unknown
+    >,
 ): LoginSearch {
   return {
     redirect:
@@ -72,8 +73,9 @@ const rootRoute =
 
 const publicRoute =
   createRoute({
-    getParentRoute: () =>
-      rootRoute,
+    getParentRoute:
+      () =>
+        rootRoute,
 
     id:
       '_public',
@@ -84,8 +86,9 @@ const publicRoute =
 
 const protectedRoute =
   createRoute({
-    getParentRoute: () =>
-      rootRoute,
+    getParentRoute:
+      () =>
+        rootRoute,
 
     id:
       '_authenticated',
@@ -127,20 +130,22 @@ const protectedRoute =
 
 const homeRoute =
   createRoute({
-    getParentRoute: () =>
-      publicRoute,
+    getParentRoute:
+      () =>
+        publicRoute,
 
     path:
       paths.home,
 
     component:
-      HomeRoute,
+      HomePage,
   })
 
 const marketplaceRoute =
   createRoute({
-    getParentRoute: () =>
-      publicRoute,
+    getParentRoute:
+      () =>
+        publicRoute,
 
     path:
       paths.marketplace,
@@ -154,8 +159,9 @@ const marketplaceRoute =
 
 const nftDetailsRoute =
   createRoute({
-    getParentRoute: () =>
-      publicRoute,
+    getParentRoute:
+      () =>
+        publicRoute,
 
     path:
       paths.nftDetails,
@@ -166,8 +172,9 @@ const nftDetailsRoute =
 
 const cartRoute =
   createRoute({
-    getParentRoute: () =>
-      publicRoute,
+    getParentRoute:
+      () =>
+        publicRoute,
 
     path:
       paths.cart,
@@ -178,8 +185,9 @@ const cartRoute =
 
 const loginRoute =
   createRoute({
-    getParentRoute: () =>
-      publicRoute,
+    getParentRoute:
+      () =>
+        publicRoute,
 
     path:
       paths.login,
@@ -187,18 +195,15 @@ const loginRoute =
     validateSearch:
       validateLoginSearch,
 
-    component: () => (
-      <RoutePlaceholder
-        title="Sign in"
-        description="Authentication will return the collector to the protected page they originally requested."
-      />
-    ),
+    component:
+      LoginPage,
   })
 
 const signUpRoute =
   createRoute({
-    getParentRoute: () =>
-      publicRoute,
+    getParentRoute:
+      () =>
+        publicRoute,
 
     path:
       paths.signUp,
@@ -209,8 +214,9 @@ const signUpRoute =
 
 const checkoutRoute =
   createRoute({
-    getParentRoute: () =>
-      protectedRoute,
+    getParentRoute:
+      () =>
+        protectedRoute,
 
     path:
       paths.checkout,
@@ -221,8 +227,9 @@ const checkoutRoute =
 
 const orderRoute =
   createRoute({
-    getParentRoute: () =>
-      protectedRoute,
+    getParentRoute:
+      () =>
+        protectedRoute,
 
     path:
       paths.order,
@@ -233,8 +240,9 @@ const orderRoute =
 
 const favoritesRoute =
   createRoute({
-    getParentRoute: () =>
-      protectedRoute,
+    getParentRoute:
+      () =>
+        protectedRoute,
 
     path:
       paths.favorites,
@@ -245,8 +253,9 @@ const favoritesRoute =
 
 const profileRoute =
   createRoute({
-    getParentRoute: () =>
-      protectedRoute,
+    getParentRoute:
+      () =>
+        protectedRoute,
 
     path:
       paths.profile,
@@ -257,8 +266,9 @@ const profileRoute =
 
 const walletsRoute =
   createRoute({
-    getParentRoute: () =>
-      protectedRoute,
+    getParentRoute:
+      () =>
+        protectedRoute,
 
     path:
       paths.wallets,
@@ -312,6 +322,7 @@ export const router =
 
 declare module '@tanstack/react-router' {
   interface Register {
-    router: typeof router
+    router:
+      typeof router
   }
 }
