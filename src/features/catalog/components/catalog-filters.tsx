@@ -10,14 +10,12 @@ interface CatalogFiltersProps {
   idPrefix: string
   categories: NftCategory[]
   networks: BlockchainNetwork[]
-  draftMinPrice: string
-  draftMaxPrice: string
+  minPrice: string
+  maxPrice: string
   facets?: NftListFacets
   onCategoryChange: (category: NftCategory) => void
   onNetworkChange: (network: BlockchainNetwork) => void
-  onDraftMinPriceChange: (value: string) => void
-  onDraftMaxPriceChange: (value: string) => void
-  onApplyPrice: () => void
+  onApplyPrice: (minPrice: string, maxPrice: string) => void
   onReset: () => void
 }
 
@@ -27,16 +25,16 @@ export function CatalogFilters({
   idPrefix,
   categories,
   networks,
-  draftMinPrice,
-  draftMaxPrice,
+  minPrice,
+  maxPrice,
   facets,
   onCategoryChange,
   onNetworkChange,
-  onDraftMinPriceChange,
-  onDraftMaxPriceChange,
   onApplyPrice,
   onReset,
 }: CatalogFiltersProps) {
+  const [draftMinPrice, setDraftMinPrice] = useState(minPrice)
+  const [draftMaxPrice, setDraftMaxPrice] = useState(maxPrice)
   const [priceError, setPriceError] = useState<string | null>(null)
 
   function handlePriceSubmit(event: FormEvent<HTMLFormElement>) {
@@ -51,7 +49,14 @@ export function CatalogFilters({
     }
 
     setPriceError(null)
-    onApplyPrice()
+    onApplyPrice(draftMinPrice, draftMaxPrice)
+  }
+
+  function handleReset() {
+    setDraftMinPrice('')
+    setDraftMaxPrice('')
+    setPriceError(null)
+    onReset()
   }
 
   return (
@@ -60,7 +65,11 @@ export function CatalogFilters({
         <Typography as="h2" variant="subheading">
           Filtros
         </Typography>
-        <button type="button" className="text-xs text-primary hover:underline" onClick={onReset}>
+        <button
+          type="button"
+          className="text-xs text-primary hover:underline"
+          onClick={handleReset}
+        >
           Limpar
         </button>
       </div>
@@ -113,7 +122,7 @@ export function CatalogFilters({
                 placeholder={facets?.minPriceEth ?? 'M\u00edn.'}
                 aria-invalid={Boolean(priceError)}
                 aria-describedby={priceError ? `${idPrefix}-price-error` : undefined}
-                onChange={(event) => onDraftMinPriceChange(event.target.value.trim())}
+                onChange={(event) => setDraftMinPrice(event.target.value.trim())}
               />
             </div>
             <div>
@@ -127,7 +136,7 @@ export function CatalogFilters({
                 placeholder={facets?.maxPriceEth ?? 'M\u00e1x.'}
                 aria-invalid={Boolean(priceError)}
                 aria-describedby={priceError ? `${idPrefix}-price-error` : undefined}
-                onChange={(event) => onDraftMaxPriceChange(event.target.value.trim())}
+                onChange={(event) => setDraftMaxPrice(event.target.value.trim())}
               />
             </div>
           </div>
