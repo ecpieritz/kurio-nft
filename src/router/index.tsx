@@ -8,6 +8,7 @@ import {
 
 import { AppShell } from '@/components/layout/app-shell'
 import { SignUpPage } from '@/features/auth/registration/sign-up-page'
+import { rememberReturnTo, sanitizeReturnTo } from '@/lib/auth/navigation-context'
 import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
 import { paths } from '@/router/paths'
@@ -15,16 +16,15 @@ import { HomeRoute, NotFoundRoute, RouteError, RoutePlaceholder } from '@/router
 
 interface LoginSearch {
   redirect?: string
+  reason?: 'session-expired'
 }
 
 function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
   const redirectTarget = search.redirect
 
   return {
-    redirect:
-      typeof redirectTarget === 'string' && redirectTarget.startsWith('/')
-        ? redirectTarget
-        : undefined,
+    redirect: sanitizeReturnTo(redirectTarget) ?? undefined,
+    reason: search.reason === 'session-expired' ? 'session-expired' : undefined,
   }
 }
 
@@ -45,11 +45,13 @@ const protectedRoute = createRoute({
   id: '_authenticated',
   beforeLoad: ({ context, location }) => {
     if (context.auth.status !== 'authenticated') {
+      const returnTo = rememberReturnTo(location.href) ?? paths.home
+
       // TanStack Router models redirects as throwable control-flow objects.
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({
         to: paths.login,
-        search: { redirect: location.href },
+        search: { redirect: returnTo },
         replace: true,
       })
     }

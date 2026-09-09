@@ -1,5 +1,6 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 
+import { reportSessionExpiration, isSessionInvalidationError } from '@/lib/auth/session-expiration'
 import { getSessionToken } from '@/lib/auth/session-token'
 import { normalizeApiError } from '@/lib/api/error'
 
@@ -40,7 +41,24 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => Promise.reject(normalizeApiError(error)),
+  (error: unknown) => {
+    const normalizedError = normalizeApiError(error)
+    const requestUrl = axios.isAxiosError(error) ? error.config?.url : undefined
+    const isAuthenticationMutation =
+      requestUrl?.endsWith('/auth/login') ||
+      requestUrl?.endsWith('/auth/register') ||
+      requestUrl?.endsWith('/auth/logout')
+
+    if (
+      getSessionToken() &&
+      !isAuthenticationMutation &&
+      isSessionInvalidationError(normalizedError)
+    ) {
+      reportSessionExpiration(normalizedError)
+    }
+
+    return Promise.reject(normalizedError)
+  },
 )
 
 export async function apiRequest<TResponse, TBody = unknown>(

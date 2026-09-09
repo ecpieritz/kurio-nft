@@ -1,36 +1,49 @@
-import { useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { useCallback, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { AuthContext, type AuthContextValue } from '@/features/auth/session/auth-context'
+import { authQueryKeys } from '@/features/auth/session/auth-query-keys'
+import { fetchSession, loginAccount, logoutAccount } from '@/features/auth/session/auth-api'
+import { clearReturnTo } from '@/lib/auth/navigation-context'
 import {
-  fetchSession,
-  loginAccount,
-  logoutAccount,
-} from '@/features/auth/session/auth-api'
+  isSessionInvalidationError,
+  subscribeToSessionExpiration,
+} from '@/lib/auth/session-expiration'
 import { clearSessionToken, getSessionToken, setSessionToken } from '@/lib/auth/session-token'
-import { ApiClientError } from '@/lib/api/error'
 
 const privateQueryScopes = new Set(['auth', 'profile', 'wallets', 'favorites', 'orders'])
-
-export const authQueryKeys = {
-  all: ['auth'] as const,
-  session: ['auth', 'session'] as const,
-}
-
-function isInvalidSession(error: unknown): boolean {
-  return (
-    error instanceof ApiClientError &&
-    (error.status === 401 || error.code === 'SESSION_EXPIRED' || error.code === 'UNAUTHORIZED')
-  )
-}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient()
   const [token, setToken] = useState<string | null>(() => getSessionToken())
+  const [sessionExpiredAt, setSessionExpiredAt] = useState<number | null>(null)
+  const [loginCompletedAt, setLoginCompletedAt] = useState<number | null>(null)
+
+  const clearPrivateQueries = useCallback(() => {
+    queryClient.removeQueries({
+      predicate: (query) => privateQueryScopes.has(String(query.queryKey[0])),
+    })
+  }, [queryClient])
+
+  const expireSession = useCallback(() => {
+    if (!getSessionToken()) return
+
+    clearSessionToken()
+    setToken(null)
+    setSessionExpiredAt(Date.now())
+    clearPrivateQueries()
+  }, [clearPrivateQueries])
 
   const sessionQuery = useQuery({
     queryKey: authQueryKeys.session,
-    queryFn: fetchSession,
+    queryFn: async () => {
+      try {
+        return await fetchSession()
+      } catch (error) {
+        if (isSessionInvalidationError(error)) expireSession()
+        throw error
+      }
+    },
     enabled: Boolean(token),
     retry: false,
     staleTime: 60_000,
@@ -39,27 +52,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const loginMutation = useMutation({ mutationFn: loginAccount, retry: false })
   const logoutMutation = useMutation({ mutationFn: logoutAccount, retry: false })
 
-  useEffect(() => {
-    if (!token || !sessionQuery.error || !isInvalidSession(sessionQuery.error)) return
-
-    clearSessionToken()
-    setToken(null)
-    queryClient.removeQueries({ queryKey: authQueryKeys.all })
-  }, [queryClient, sessionQuery.error, token])
+  useEffect(() => subscribeToSessionExpiration(() => expireSession()), [expireSession])
 
   const context = useMemo<AuthContextValue>(() => {
     const hasRecoverableSessionError = Boolean(
-      token && sessionQuery.error && !isInvalidSession(sessionQuery.error),
+      token && sessionQuery.error && !isSessionInvalidationError(sessionQuery.error),
     )
-    const status = !token
-      ? 'anonymous'
-      : sessionQuery.data
-        ? 'authenticated'
-        : ('pending' as const)
+    const status = !token ? 'anonymous' : sessionQuery.data ? 'authenticated' : ('pending' as const)
 
     return {
       status,
       user: sessionQuery.data?.user ?? null,
+      sessionExpiredAt,
+      loginCompletedAt,
       sessionError: hasRecoverableSessionError
         ? sessionQuery.error instanceof Error
           ? sessionQuery.error
@@ -67,11 +72,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         : null,
       login: async (request) => {
         const response = await loginMutation.mutateAsync(request)
-        queryClient.removeQueries({
-          predicate: (query) => privateQueryScopes.has(String(query.queryKey[0])),
-        })
+        clearPrivateQueries()
         setSessionToken(response.sessionToken)
         setToken(response.sessionToken)
+        setSessionExpiredAt(null)
+        setLoginCompletedAt(Date.now())
         queryClient.setQueryData(authQueryKeys.session, {
           user: response.user,
           expiresAt: response.expiresAt,
@@ -84,16 +89,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
         } finally {
           clearSessionToken()
           setToken(null)
-          queryClient.removeQueries({
-            predicate: (query) => privateQueryScopes.has(String(query.queryKey[0])),
-          })
+          setSessionExpiredAt(null)
+          setLoginCompletedAt(null)
+          clearReturnTo()
+          clearPrivateQueries()
         }
       },
       retrySession: async () => {
         await sessionQuery.refetch()
       },
     }
-  }, [loginMutation, logoutMutation, queryClient, sessionQuery, token])
+  }, [
+    clearPrivateQueries,
+    loginMutation,
+    loginCompletedAt,
+    logoutMutation,
+    queryClient,
+    sessionExpiredAt,
+    sessionQuery,
+    token,
+  ])
 
   return <AuthContext.Provider value={context}>{children}</AuthContext.Provider>
 }

@@ -8,6 +8,8 @@ export interface AuthContextValue {
   status: AuthStatus
   user: SessionUser | null
   sessionError: Error | null
+  sessionExpiredAt: number | null
+  loginCompletedAt: number | null
   login: (request: LoginRequest) => Promise<SessionUser>
   logout: () => Promise<void>
   retrySession: () => Promise<void>
