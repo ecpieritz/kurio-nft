@@ -1,5 +1,5 @@
 import { apiRequest } from '@/lib/api'
-import type { NftListRequest, NftListResponse } from '@/lib/api/contracts'
+import type { NftDetails, NftListRequest, NftListResponse } from '@/lib/api/contracts'
 import { endpoints } from '@/lib/api/endpoints'
 
 function createSearchParams(request: NftListRequest): URLSearchParams {
@@ -23,6 +23,14 @@ export function fetchNfts(request: NftListRequest, signal?: AbortSignal): Promis
     method: 'GET',
     url: endpoints.nfts.list,
     params: createSearchParams(request),
+    signal,
+  })
+}
+
+export function fetchNftDetails(nftId: string, signal?: AbortSignal): Promise<NftDetails> {
+  return apiRequest<NftDetails>({
+    method: 'GET',
+    url: endpoints.nfts.details(nftId),
     signal,
   })
 }

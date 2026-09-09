@@ -102,6 +102,28 @@ function invalidQueryResponse(message: string): HttpResponse<ApiErrorResponse> {
 }
 
 export const nftHandlers = [
+  http.get('*/api/nfts/:nftId', async ({ params }) => {
+    const scenarioResponse = await applyNetworkScenario('nfts')
+    if (scenarioResponse) return scenarioResponse
+
+    const nft = mockDatabase.read().nfts.find((candidate) => candidate.id === String(params.nftId))
+
+    if (!nft) {
+      return HttpResponse.json<ApiErrorResponse>(
+        {
+          error: {
+            code: 'NOT_FOUND',
+            message: 'NFT n\u00e3o encontrado.',
+            retryable: false,
+          },
+        },
+        { status: 404 },
+      )
+    }
+
+    return HttpResponse.json(nft)
+  }),
+
   http.get('*/api/nfts', async ({ request }) => {
     const scenarioResponse = await applyNetworkScenario('nfts')
     if (scenarioResponse) return scenarioResponse
