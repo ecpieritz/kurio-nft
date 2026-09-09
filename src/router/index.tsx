@@ -14,6 +14,8 @@ import { validateCatalogSearch } from '@/features/catalog/catalog-search'
 import { CheckoutPage } from '@/features/checkout/checkout-page'
 import { FavoritesPage } from '@/features/favorites/favorites-page'
 import { NftDetailsPage } from '@/features/nft/nft-details-page'
+import { OrderPage } from '@/features/orders/order-page'
+import { ProfilePage } from '@/features/profile/profile-page'
 import { WalletsPage } from '@/features/wallets/wallets-page'
 import {
   rememberReturnTo,
@@ -73,7 +75,8 @@ const publicRoute =
     getParentRoute: () =>
       rootRoute,
 
-    id: '_public',
+    id:
+      '_public',
 
     component:
       Outlet,
@@ -92,8 +95,7 @@ const protectedRoute =
       location,
     }) => {
       if (
-        context.auth
-          .status !==
+        context.auth.status !==
         'authenticated'
       ) {
         const returnTo =
@@ -225,12 +227,8 @@ const orderRoute =
     path:
       paths.order,
 
-    component: () => (
-      <RoutePlaceholder
-        title="Order status"
-        description="Pending, confirmed and rejected orders are isolated to the active collector."
-      />
-    ),
+    component:
+      OrderPage,
   })
 
 const favoritesRoute =
@@ -253,12 +251,8 @@ const profileRoute =
     path:
       paths.profile,
 
-    component: () => (
-      <RoutePlaceholder
-        title="Collector profile"
-        description="Profile data, avatar and password settings are protected account resources."
-      />
-    ),
+    component:
+      ProfilePage,
   })
 
 const walletsRoute =
