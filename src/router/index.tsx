@@ -11,8 +11,10 @@ import { SignUpPage } from '@/features/auth/registration/sign-up-page'
 import { CartPage } from '@/features/cart/cart-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { validateCatalogSearch } from '@/features/catalog/catalog-search'
+import { CheckoutPage } from '@/features/checkout/checkout-page'
 import { FavoritesPage } from '@/features/favorites/favorites-page'
 import { NftDetailsPage } from '@/features/nft/nft-details-page'
+import { WalletsPage } from '@/features/wallets/wallets-page'
 import {
   rememberReturnTo,
   sanitizeReturnTo,
@@ -38,13 +40,10 @@ function validateLoginSearch(
     unknown
   >,
 ): LoginSearch {
-  const redirectTarget =
-    search.redirect
-
   return {
     redirect:
       sanitizeReturnTo(
-        redirectTarget,
+        search.redirect,
       ) ?? undefined,
 
     reason:
@@ -58,7 +57,9 @@ function validateLoginSearch(
 const rootRoute =
   createRootRouteWithContext<RouterContext>()(
     {
-      component: AppShell,
+      component:
+        AppShell,
+
       errorComponent:
         RouteError,
 
@@ -73,7 +74,9 @@ const publicRoute =
       rootRoute,
 
     id: '_public',
-    component: Outlet,
+
+    component:
+      Outlet,
   })
 
 const protectedRoute =
@@ -81,7 +84,8 @@ const protectedRoute =
     getParentRoute: () =>
       rootRoute,
 
-    id: '_authenticated',
+    id:
+      '_authenticated',
 
     beforeLoad: ({
       context,
@@ -95,24 +99,28 @@ const protectedRoute =
         const returnTo =
           rememberReturnTo(
             location.href,
-          ) ?? paths.home
+          ) ??
+          paths.home
 
         // TanStack Router models redirects as throwable control-flow objects.
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw redirect({
-          to: paths.login,
+          to:
+            paths.login,
 
           search: {
             redirect:
               returnTo,
           },
 
-          replace: true,
+          replace:
+            true,
         })
       }
     },
 
-    component: Outlet,
+    component:
+      Outlet,
   })
 
 const homeRoute =
@@ -120,7 +128,8 @@ const homeRoute =
     getParentRoute: () =>
       publicRoute,
 
-    path: paths.home,
+    path:
+      paths.home,
 
     component:
       HomeRoute,
@@ -158,7 +167,8 @@ const cartRoute =
     getParentRoute: () =>
       publicRoute,
 
-    path: paths.cart,
+    path:
+      paths.cart,
 
     component:
       CartPage,
@@ -169,7 +179,8 @@ const loginRoute =
     getParentRoute: () =>
       publicRoute,
 
-    path: paths.login,
+    path:
+      paths.login,
 
     validateSearch:
       validateLoginSearch,
@@ -187,7 +198,8 @@ const signUpRoute =
     getParentRoute: () =>
       publicRoute,
 
-    path: paths.signUp,
+    path:
+      paths.signUp,
 
     component:
       SignUpPage,
@@ -201,12 +213,8 @@ const checkoutRoute =
     path:
       paths.checkout,
 
-    component: () => (
-      <RoutePlaceholder
-        title="Checkout"
-        description="Collector details, wallet selection and quote review require an authenticated session."
-      />
-    ),
+    component:
+      CheckoutPage,
   })
 
 const orderRoute =
@@ -214,7 +222,8 @@ const orderRoute =
     getParentRoute: () =>
       protectedRoute,
 
-    path: paths.order,
+    path:
+      paths.order,
 
     component: () => (
       <RoutePlaceholder
@@ -260,12 +269,8 @@ const walletsRoute =
     path:
       paths.wallets,
 
-    component: () => (
-      <RoutePlaceholder
-        title="Wallets"
-        description="Primary and secondary wallet settings require an authenticated session."
-      />
-    ),
+    component:
+      WalletsPage,
   })
 
 const routeTree =
@@ -297,7 +302,8 @@ export const router =
     routeTree,
 
     context: {
-      auth: anonymousAuthContext,
+      auth:
+        anonymousAuthContext,
     },
 
     defaultPreload:
