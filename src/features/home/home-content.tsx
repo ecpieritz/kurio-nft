@@ -1,11 +1,17 @@
+import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 
 import { NftArtwork } from '@/components/media/nft-artwork'
 import { Button } from '@/components/ui/button'
 import { Typography } from '@/components/ui/typography'
+import { sortOptions } from '@/features/catalog/catalog-config'
+import type { CatalogView } from '@/features/catalog/catalog-search'
 import { useCatalogQuery } from '@/features/catalog/catalog-query'
 import { MobileHomeHero } from '@/features/home/components/mobile-home-hero'
-import type { NftSummary } from '@/lib/api/contracts'
+import type { NftListRequest, NftSort, NftSummary } from '@/lib/api/contracts'
+import { cn } from '@/lib/utils'
+
+const HOME_PAGE_SIZE = 9
 
 const categories = [
   ['Arte digital', 33],
@@ -24,6 +30,12 @@ const networks = [
   ['Polygon', 78],
   ['Solana', 86],
 ] as const
+
+const homeViews = [
+  { value: 'all', label: 'Todos os NFTs' },
+  { value: 'new', label: 'Novos lançamentos' },
+  { value: 'popular', label: 'Em alta' },
+] as const satisfies ReadonlyArray<{ value: CatalogView; label: string }>
 
 const diaryEntries = [
   {
@@ -58,10 +70,9 @@ const diaryEntries = [
 
 interface HomeNftCardProps {
   nft: NftSummary
-  priority?: boolean
 }
 
-function HomeNftCard({ nft, priority = false }: HomeNftCardProps) {
+function HomeNftCard({ nft }: HomeNftCardProps) {
   return (
     <article className="min-w-0">
       <Link
@@ -83,8 +94,8 @@ function HomeNftCard({ nft, priority = false }: HomeNftCardProps) {
             alt={nft.image.alt}
             width={nft.image.width}
             height={nft.image.height}
-            loading={priority ? 'eager' : 'lazy'}
-            fetchPriority={priority ? 'high' : 'auto'}
+            loading="lazy"
+            decoding="async"
             className="aspect-square w-full object-cover"
           />
         </div>
@@ -118,7 +129,7 @@ function HomeCatalogSkeleton() {
     <div className="grid grid-cols-2 gap-x-5 gap-y-8 lg:grid-cols-3">
       {Array.from(
         {
-          length: 9,
+          length: HOME_PAGE_SIZE,
         },
         (_, index) => (
           <div key={index} className="space-y-3">
@@ -134,16 +145,59 @@ function HomeCatalogSkeleton() {
   )
 }
 
+function getVisiblePages(currentPage: number, totalPages: number): number[] {
+  const visibleCount = Math.min(5, totalPages)
+  const firstPage = Math.min(
+    Math.max(1, currentPage - Math.floor(visibleCount / 2)),
+    Math.max(1, totalPages - visibleCount + 1),
+  )
+
+  return Array.from({ length: visibleCount }, (_, index) => firstPage + index)
+}
+
 export function HomeContent() {
-  const catalogQuery = useCatalogQuery({
-    sort: 'recent',
-    page: 1,
-    pageSize: 9,
-  })
+  const [view, setView] = useState<CatalogView>('all')
+  const [sort, setSort] = useState<NftSort>('recent')
+  const [page, setPage] = useState(1)
 
+  const effectiveSort = view === 'popular' ? 'popular' : view === 'new' ? 'recent' : sort
+
+  const catalogRequest = useMemo<NftListRequest>(
+    () => ({
+      sort: effectiveSort,
+      page,
+      pageSize: HOME_PAGE_SIZE,
+    }),
+    [effectiveSort, page],
+  )
+
+  const catalogQuery = useCatalogQuery(catalogRequest)
   const items = catalogQuery.data?.items ?? []
-
+  const totalPages = catalogQuery.data?.page.totalPages ?? 0
   const featuredNft = items[1] ?? items[0]
+
+  function selectView(nextView: CatalogView): void {
+    if (nextView === view) {
+      return
+    }
+
+    setView(nextView)
+    setPage(1)
+  }
+
+  function selectSort(nextSort: NftSort): void {
+    setSort(nextSort)
+    setView('all')
+    setPage(1)
+  }
+
+  function selectPage(nextPage: number): void {
+    if (nextPage === page || nextPage < 1 || nextPage > totalPages) {
+      return
+    }
+
+    setPage(nextPage)
+  }
 
   return (
     <>
@@ -172,12 +226,19 @@ export function HomeContent() {
         <div className="relative hidden md:block">
           <NftArtwork
             artwork="emeraldApe"
+            loading="eager"
             fetchPriority="high"
+            decoding="async"
             className="aspect-square w-full rounded-panel object-cover"
           />
 
           <div className="absolute bottom-6 left-6 w-24 overflow-hidden rounded-control border-4 border-background shadow-card">
-            <NftArtwork artwork="violetNomad" className="aspect-square w-full object-cover" />
+            <NftArtwork
+              artwork="violetNomad"
+              loading="eager"
+              decoding="async"
+              className="aspect-square w-full object-cover"
+            />
           </div>
         </div>
       </section>
@@ -252,6 +313,8 @@ export function HomeContent() {
                   alt={featuredNft.image.alt}
                   width={featuredNft.image.width}
                   height={featuredNft.image.height}
+                  loading="lazy"
+                  decoding="async"
                   className="aspect-square w-full object-cover"
                 />
               </Link>
@@ -263,31 +326,50 @@ export function HomeContent() {
 
         <div className="min-w-0">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border/70">
-            <div className="flex max-w-full gap-5 overflow-x-auto whitespace-nowrap text-sm">
-              <Link
-                to="/marketplace"
-                className="border-b-2 border-primary pb-3 font-semibold text-primary"
-              >
-                Todos os NFTs
-              </Link>
-
-              <Link to="/marketplace" className="pb-3 text-foreground hover:text-primary">
-                Novos lançamentos
-              </Link>
-
-              <Link to="/marketplace" className="pb-3 text-foreground hover:text-primary">
-                Em alta
-              </Link>
+            <div
+              className="flex max-w-full gap-5 overflow-x-auto whitespace-nowrap text-sm"
+              role="group"
+              aria-label="Visões do catálogo na página inicial"
+            >
+              {homeViews.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={view === option.value}
+                  className={cn(
+                    'shrink-0 border-b-2 border-transparent pb-3 text-foreground transition-colors hover:text-primary',
+                    view === option.value && 'border-primary font-semibold text-primary',
+                  )}
+                  onClick={() => selectView(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
 
-            <span className="hidden pb-3 text-xs text-muted-foreground md:inline">
-              Ordenar por: Listados recentemente
-            </span>
+            <div className="hidden items-center gap-2 pb-3 md:flex">
+              <label htmlFor="home-catalog-sort" className="text-xs text-muted-foreground">
+                Ordenar por:
+              </label>
+
+              <select
+                id="home-catalog-sort"
+                value={effectiveSort}
+                className="rounded-control border-0 bg-transparent text-xs text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                onChange={(event) => selectSort(event.target.value as NftSort)}
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-background">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {catalogQuery.isPending ? (
             <HomeCatalogSkeleton />
-          ) : catalogQuery.isError ? (
+          ) : catalogQuery.isError && !catalogQuery.data ? (
             <div className="rounded-card border border-destructive/60 bg-card p-8 text-center">
               <Typography as="h2" variant="heading">
                 Não foi possível carregar os NFTs
@@ -305,37 +387,69 @@ export function HomeContent() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-5 gap-y-8 lg:grid-cols-3 lg:gap-x-6 lg:gap-y-10">
-              {items.map((nft, index) => (
-                <HomeNftCard key={nft.id} nft={nft} priority={index < 3} />
+            <div
+              className={cn(
+                'grid grid-cols-2 gap-x-5 gap-y-8 transition-opacity lg:grid-cols-3 lg:gap-x-6 lg:gap-y-10',
+                catalogQuery.isPlaceholderData && 'opacity-60',
+              )}
+            >
+              {items.map((nft) => (
+                <HomeNftCard key={nft.id} nft={nft} />
               ))}
             </div>
           )}
 
-          <nav aria-label="Prévia da paginação" className="mt-10 flex justify-end gap-2">
-            {[1, 2, 3, 4].map((page) => (
+          {totalPages > 1 && (
+            <nav aria-label="Páginas do catálogo na página inicial" className="mt-10 flex justify-end gap-2">
               <Button
-                key={page}
-                asChild
-                variant={page === 1 ? 'default' : 'outline'}
+                type="button"
+                variant="outline"
                 size="icon-sm"
+                aria-label="Página anterior"
+                disabled={page <= 1 || catalogQuery.isPlaceholderData}
+                onClick={() => selectPage(page - 1)}
               >
-                <Link to="/marketplace">{page}</Link>
+                <span aria-hidden="true">&lsaquo;</span>
               </Button>
-            ))}
 
-            <Button asChild variant="outline" size="icon-sm">
-              <Link to="/marketplace" aria-label="Próxima página">
-                &gt;
-              </Link>
-            </Button>
-          </nav>
+              {getVisiblePages(page, totalPages).map((pageNumber) => (
+                <Button
+                  key={pageNumber}
+                  type="button"
+                  variant={pageNumber === page ? 'default' : 'outline'}
+                  size="icon-sm"
+                  aria-label={`Página ${pageNumber}`}
+                  aria-current={pageNumber === page ? 'page' : undefined}
+                  disabled={catalogQuery.isPlaceholderData}
+                  onClick={() => selectPage(pageNumber)}
+                >
+                  {pageNumber}
+                </Button>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                aria-label="Próxima página"
+                disabled={page >= totalPages || catalogQuery.isPlaceholderData}
+                onClick={() => selectPage(page + 1)}
+              >
+                <span aria-hidden="true">&rsaquo;</span>
+              </Button>
+            </nav>
+          )}
         </div>
       </section>
 
       <section className="mx-auto grid w-full max-w-(--content-max) gap-5 px-(--page-gutter) pb-14 md:grid-cols-2 md:px-0">
         <article className="grid overflow-hidden bg-card md:grid-cols-[10rem_minmax(0,1fr)]">
-          <NftArtwork artwork="emeraldApe" className="h-full min-h-40 w-full object-cover" />
+          <NftArtwork
+            artwork="emeraldApe"
+            loading="lazy"
+            decoding="async"
+            className="h-full min-h-40 w-full object-cover"
+          />
 
           <div className="grid place-items-center p-6 text-center">
             <div>
@@ -357,7 +471,12 @@ export function HomeContent() {
         </article>
 
         <article className="grid overflow-hidden bg-card md:grid-cols-[10rem_minmax(0,1fr)]">
-          <NftArtwork artwork="ivoryBaron" className="h-full min-h-40 w-full object-cover" />
+          <NftArtwork
+            artwork="ivoryBaron"
+            loading="lazy"
+            decoding="async"
+            className="h-full min-h-40 w-full object-cover"
+          />
 
           <div className="grid place-items-center p-6 text-center">
             <div>
@@ -392,7 +511,12 @@ export function HomeContent() {
         <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {diaryEntries.map((entry) => (
             <article key={entry.title} className="overflow-hidden bg-card">
-              <NftArtwork artwork={entry.artwork} className="aspect-[1.2/1] w-full object-cover" />
+              <NftArtwork
+                artwork={entry.artwork}
+                loading="lazy"
+                decoding="async"
+                className="aspect-[1.2/1] w-full object-cover"
+              />
 
               <div className="p-4">
                 <p className="text-[0.65rem] text-muted-foreground">

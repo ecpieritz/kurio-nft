@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
@@ -12,10 +12,44 @@ const navigationLinkClass =
 export function SiteHeader() {
   const auth = useAuth()
   const navigate = useNavigate()
+  const accountMenuRef = useRef<HTMLDivElement>(null)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
   const [logoutPending, setLogoutPending] = useState(false)
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const greetingName = auth.user?.displayName.trim().split(/\s+/)[0] || auth.user?.username
+
+  useEffect(() => {
+    if (!accountMenuOpen) {
+      return
+    }
+
+    function handlePointerDown(event: PointerEvent): void {
+      const target = event.target
+
+      if (!(target instanceof Node) || !accountMenuRef.current) {
+        return
+      }
+
+      if (!accountMenuRef.current.contains(target)) {
+        setAccountMenuOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === 'Escape') {
+        setAccountMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [accountMenuOpen])
 
   async function handleLogout(): Promise<void> {
     if (logoutPending) return
@@ -76,21 +110,89 @@ export function SiteHeader() {
                 <Icon name="search" className="size-5" />
               </Link>
             </Button>
+
             <Button asChild variant="ghost" size="icon" className="relative text-foreground">
               <Link to="/cart" aria-label="Abrir carrinho">
                 <Icon name="cart" className="size-5" />
               </Link>
             </Button>
+
             {auth.status === 'authenticated' ? (
-              <Button
-                type="button"
-                size="sm"
-                className="ml-2 max-w-52"
-                aria-haspopup="dialog"
-                onClick={() => setLogoutDialogOpen(true)}
-              >
+              <div ref={accountMenuRef} className="relative ml-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="max-w-56"
+                  aria-haspopup="menu"
+                  aria-expanded={accountMenuOpen}
+                  aria-controls="account-menu"
+                  onClick={() => setAccountMenuOpen((open) => !open)}
+                >
+                  <Icon name="user" className="size-4 brightness-0" />
+                  <span className="truncate">Olá, {greetingName}!</span>
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`size-3.5 shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`}
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </Button>
+
+                {accountMenuOpen && (
+                  <div
+                    id="account-menu"
+                    role="menu"
+                    aria-label="Menu da conta"
+                    className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-control border border-border bg-card py-2 shadow-elevated"
+                  >
+                    <Link
+                      to="/profile"
+                      role="menuitem"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-foreground transition-colors hover:bg-background hover:text-primary focus-visible:bg-background"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <Icon name="user" className="size-4 text-primary" color="#dc8d48" />
+                      Meu perfil
+                    </Link>
+
+                    <Link
+                      to="/favorites"
+                      role="menuitem"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-foreground transition-colors hover:bg-background hover:text-primary focus-visible:bg-background"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <Icon name="heart" className="size-4 text-primary" color="#dc8d48" />
+                      Favoritos
+                    </Link>
+
+                    <div className="my-1 border-t border-border/70" />
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-foreground transition-colors hover:bg-background hover:text-primary focus-visible:bg-background"
+                      onClick={() => {
+                        setAccountMenuOpen(false)
+                        setLogoutError(null)
+                        setLogoutDialogOpen(true)
+                      }}
+                    >
+                      <Icon name="logout" className="size-4 text-primary" color="#dc8d48" />
+                      Sair
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : auth.status === 'pending' ? (
+              <Button type="button" size="sm" className="ml-2" disabled aria-label="Recuperando sessão">
                 <Icon name="user" className="size-4 brightness-0" />
-                <span className="truncate">Olá, {greetingName}!</span>
+                <span>Carregando...</span>
               </Button>
             ) : (
               <Button asChild size="sm" className="ml-2">

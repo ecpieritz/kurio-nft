@@ -64,7 +64,7 @@ export function FavoriteButton({ nftId, showLabel = false, className }: Favorite
         )}
         onClick={handleClick}
       >
-        <Icon name={isFavorite ? 'heartBold' : 'heart'} className="size-4" />
+        <Icon name={isFavorite ? 'heartBold' : 'heart'} className="size-4" color="#dc8d48" />
 
         {showLabel && (isFavorite ? 'Favoritado' : 'Favoritar')}
       </Button>

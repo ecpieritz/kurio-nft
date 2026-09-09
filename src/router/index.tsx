@@ -50,7 +50,7 @@ const protectedRoute = createRoute({
   id: '_authenticated',
 
   beforeLoad: ({ context, location }) => {
-    if (context.auth.status !== 'authenticated') {
+    if (context.auth.status === 'anonymous') {
       const returnTo = rememberReturnTo(location.href) ?? paths.home
 
       // TanStack Router models redirects as throwable control-flow objects.

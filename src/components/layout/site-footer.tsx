@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
 import { Typography } from '@/components/ui/typography'
+import type { NftCategory } from '@/lib/api/contracts'
 
 const benefits = [
   {
@@ -22,6 +23,14 @@ const benefits = [
       'Receba calendários de cunhagem, novidades de listas de acesso e análises do mercado.',
   },
 ] as const
+
+const footerCollections = [
+  { value: 'digital-art', label: 'Arte digital' },
+  { value: 'photography', label: 'Fotografia' },
+  { value: 'music', label: 'Música' },
+  { value: '3d-art', label: 'Arte 3D' },
+  { value: 'utility', label: 'Utilidade' },
+] as const satisfies ReadonlyArray<{ value: NftCategory; label: string }>
 
 const socialItems = ['f', '◎', '♥', 'in', '▶'] as const
 
@@ -157,19 +166,19 @@ export function SiteFooter() {
             </Typography>
 
             <ul className="mt-3 space-y-2 text-muted-foreground">
-              <li>
-                <Link to="/marketplace" className="hover:text-primary">
-                  Arte digital
-                </Link>
-              </li>
-
-              <li>Fotografia</li>
-
-              <li>Música</li>
-
-              <li>Arte 3D</li>
-
-              <li>Utilidade</li>
+              {footerCollections.map((collection) => (
+                <li key={collection.value}>
+                  <Link
+                    to="/marketplace"
+                    search={{
+                      categories: collection.value,
+                    }}
+                    className="hover:text-primary"
+                  >
+                    {collection.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </section>
 
@@ -178,7 +187,11 @@ export function SiteFooter() {
               Redes sociais
             </Typography>
 
-            <div className="mt-4 flex flex-wrap gap-2" aria-label="Redes sociais da Kurio">
+            <div
+              role="group"
+              aria-label="Redes sociais da Kurio"
+              className="mt-4 flex flex-wrap gap-2"
+            >
               {socialItems.map((item, index) => (
                 <span
                   key={`${item}-${index}`}

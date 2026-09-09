@@ -16,6 +16,23 @@ import { queryClient } from '@/lib/query/query-client'
 import { router } from '@/router'
 import { paths } from '@/router/paths'
 
+const protectedPathPrefixes = [
+  paths.checkout,
+  '/orders',
+  paths.favorites,
+  paths.profile,
+  paths.wallets,
+] as const
+
+function isProtectedNavigation(pathname: string): boolean {
+  const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+
+  return protectedPathPrefixes.some(
+    (protectedPath) =>
+      normalizedPath === protectedPath || normalizedPath.startsWith(`${protectedPath}/`),
+  )
+}
+
 function RoutedApplication() {
   const auth = useAuth()
 
@@ -56,7 +73,10 @@ function RoutedApplication() {
     router.history.replace(consumeReturnTo(paths.home))
   }, [auth.loginCompletedAt])
 
-  if (auth.status === 'pending') {
+  const shouldBlockForSession =
+    auth.status === 'pending' && isProtectedNavigation(window.location.pathname)
+
+  if (shouldBlockForSession) {
     return (
       <SessionGate
         error={auth.sessionError}

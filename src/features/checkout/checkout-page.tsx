@@ -582,7 +582,7 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
           </div>
         </section>
 
-        <aside className="rounded-panel border-0 bg-transparent p-0 md:border md:border-border/70 md:bg-card md:p-5 lg:sticky lg:top-24">
+        <aside className="min-w-0 max-w-full overflow-hidden rounded-panel border-0 bg-transparent p-0 md:border md:border-border/70 md:bg-card md:p-5 lg:sticky lg:top-24">
           <Typography as="h2" variant="heading" className="hidden md:block">
             Seus NFTs
           </Typography>
@@ -711,7 +711,7 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
                 </Link>
               </div>
             ) : (
-              <div className="mt-3 grid gap-3">
+              <div className="mt-3 grid min-w-0 gap-3">
                 {wallets.items.map((wallet) => (
                   <button
                     key={wallet.id}
@@ -720,25 +720,25 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
                       handleWalletSelection(wallet)
                     }}
                     className={cn(
-                      'rounded-control border bg-background p-3 text-left transition-colors hover:border-primary',
+                      'w-full min-w-0 max-w-full overflow-hidden rounded-control border bg-background p-3 text-left transition-colors hover:border-primary',
 
                       selectedWallet?.id === wallet.id && 'border-primary',
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       <span
                         aria-hidden="true"
                         className={cn(
-                          'size-4 rounded-full border border-primary',
+                          'size-4 shrink-0 rounded-full border border-primary',
 
                           selectedWallet?.id === wallet.id && 'border-[5px]',
                         )}
                       />
 
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold">{wallet.nickname}</p>
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <p className="block truncate text-sm font-semibold">{wallet.nickname}</p>
 
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                        <p className="mt-1 block max-w-full truncate text-xs text-muted-foreground">
                           {providerLabels[wallet.provider]} · {wallet.network} · {wallet.address}
                         </p>
                       </div>

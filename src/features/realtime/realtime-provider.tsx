@@ -11,7 +11,9 @@ import type {
   NftListResponse,
   NftUpdatedEvent,
 } from '@/lib/api/contracts'
-import { getRealtimeSocket } from '@/lib/realtime/socket'
+import type { RealtimeSocket } from '@/lib/realtime/socket'
+
+const REALTIME_CONNECT_DELAY_MS = 500
 
 function getEditionUpdate(
   editions: readonly NftEditionAvailabilityUpdate[],
@@ -24,7 +26,8 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    const socket = getRealtimeSocket()
+    let socket: RealtimeSocket | null = null
+    let disposed = false
 
     function handleNftUpdated(event: NftUpdatedEvent): void {
       queryClient.setQueryData<NftDetails>(catalogQueryKeys.detail(event.nftId), (current) => {
@@ -148,16 +151,29 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       })
     }
 
-    socket.on('nft.updated', handleNftUpdated)
+    const connectTimer = window.setTimeout(() => {
+      void import('@/lib/realtime/socket').then(({ getRealtimeSocket }) => {
+        if (disposed) {
+          return
+        }
 
-    if (!socket.connected) {
-      socket.connect()
-    }
+        socket = getRealtimeSocket()
+        socket.on('nft.updated', handleNftUpdated)
+
+        if (!socket.connected) {
+          socket.connect()
+        }
+      })
+    }, REALTIME_CONNECT_DELAY_MS)
 
     return () => {
-      socket.off('nft.updated', handleNftUpdated)
+      disposed = true
+      window.clearTimeout(connectTimer)
 
-      socket.disconnect()
+      if (socket) {
+        socket.off('nft.updated', handleNftUpdated)
+        socket.disconnect()
+      }
     }
   }, [queryClient])
 
