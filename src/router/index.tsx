@@ -10,31 +10,53 @@ import { AppShell } from '@/components/layout/app-shell'
 import { SignUpPage } from '@/features/auth/registration/sign-up-page'
 import { CatalogPage } from '@/features/catalog/catalog-page'
 import { validateCatalogSearch } from '@/features/catalog/catalog-search'
-import { rememberReturnTo, sanitizeReturnTo } from '@/lib/auth/navigation-context'
+import { FavoritesPage } from '@/features/favorites/favorites-page'
+import { NftDetailsPage } from '@/features/nft/nft-details-page'
+import {
+  rememberReturnTo,
+  sanitizeReturnTo,
+} from '@/lib/auth/navigation-context'
 import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
 import { paths } from '@/router/paths'
-import { HomeRoute, NotFoundRoute, RouteError, RoutePlaceholder } from '@/router/route-components'
+import {
+  HomeRoute,
+  NotFoundRoute,
+  RouteError,
+  RoutePlaceholder,
+} from '@/router/route-components'
 
 interface LoginSearch {
   redirect?: string
   reason?: 'session-expired'
 }
 
-function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
-  const redirectTarget = search.redirect
+function validateLoginSearch(
+  search: Record<string, unknown>,
+): LoginSearch {
+  const redirectTarget =
+    search.redirect
 
   return {
-    redirect: sanitizeReturnTo(redirectTarget) ?? undefined,
-    reason: search.reason === 'session-expired' ? 'session-expired' : undefined,
+    redirect:
+      sanitizeReturnTo(
+        redirectTarget,
+      ) ?? undefined,
+
+    reason:
+      search.reason ===
+      'session-expired'
+        ? 'session-expired'
+        : undefined,
   }
 }
 
-const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: AppShell,
-  errorComponent: RouteError,
-  notFoundComponent: NotFoundRoute,
-})
+const rootRoute =
+  createRootRouteWithContext<RouterContext>()({
+    component: AppShell,
+    errorComponent: RouteError,
+    notFoundComponent: NotFoundRoute,
+  })
 
 const publicRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -45,49 +67,75 @@ const publicRoute = createRoute({
 const protectedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: '_authenticated',
-  beforeLoad: ({ context, location }) => {
-    if (context.auth.status !== 'authenticated') {
-      const returnTo = rememberReturnTo(location.href) ?? paths.home
+
+  beforeLoad: ({
+    context,
+    location,
+  }) => {
+    if (
+      context.auth.status !==
+      'authenticated'
+    ) {
+      const returnTo =
+        rememberReturnTo(
+          location.href,
+        ) ?? paths.home
 
       // TanStack Router models redirects as throwable control-flow objects.
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw redirect({
         to: paths.login,
-        search: { redirect: returnTo },
+
+        search: {
+          redirect: returnTo,
+        },
+
         replace: true,
       })
     }
   },
+
   component: Outlet,
 })
 
 const homeRoute = createRoute({
-  getParentRoute: () => publicRoute,
+  getParentRoute: () =>
+    publicRoute,
+
   path: paths.home,
+
   component: HomeRoute,
 })
 
-const marketplaceRoute = createRoute({
-  getParentRoute: () => publicRoute,
-  path: paths.marketplace,
-  validateSearch: validateCatalogSearch,
-  component: CatalogPage,
-})
+const marketplaceRoute =
+  createRoute({
+    getParentRoute: () =>
+      publicRoute,
 
-const nftDetailsRoute = createRoute({
-  getParentRoute: () => publicRoute,
-  path: paths.nftDetails,
-  component: () => (
-    <RoutePlaceholder
-      title="NFT details"
-      description="Artwork, editions, availability and purchase actions will be loaded for this NFT."
-    />
-  ),
-})
+    path: paths.marketplace,
+
+    validateSearch:
+      validateCatalogSearch,
+
+    component: CatalogPage,
+  })
+
+const nftDetailsRoute =
+  createRoute({
+    getParentRoute: () =>
+      publicRoute,
+
+    path: paths.nftDetails,
+
+    component: NftDetailsPage,
+  })
 
 const cartRoute = createRoute({
-  getParentRoute: () => publicRoute,
+  getParentRoute: () =>
+    publicRoute,
+
   path: paths.cart,
+
   component: () => (
     <RoutePlaceholder
       title="NFT cart"
@@ -97,9 +145,14 @@ const cartRoute = createRoute({
 })
 
 const loginRoute = createRoute({
-  getParentRoute: () => publicRoute,
+  getParentRoute: () =>
+    publicRoute,
+
   path: paths.login,
-  validateSearch: validateLoginSearch,
+
+  validateSearch:
+    validateLoginSearch,
+
   component: () => (
     <RoutePlaceholder
       title="Sign in"
@@ -108,26 +161,37 @@ const loginRoute = createRoute({
   ),
 })
 
-const signUpRoute = createRoute({
-  getParentRoute: () => publicRoute,
-  path: paths.signUp,
-  component: SignUpPage,
-})
+const signUpRoute =
+  createRoute({
+    getParentRoute: () =>
+      publicRoute,
 
-const checkoutRoute = createRoute({
-  getParentRoute: () => protectedRoute,
-  path: paths.checkout,
-  component: () => (
-    <RoutePlaceholder
-      title="Checkout"
-      description="Collector details, wallet selection and quote review require an authenticated session."
-    />
-  ),
-})
+    path: paths.signUp,
+
+    component: SignUpPage,
+  })
+
+const checkoutRoute =
+  createRoute({
+    getParentRoute: () =>
+      protectedRoute,
+
+    path: paths.checkout,
+
+    component: () => (
+      <RoutePlaceholder
+        title="Checkout"
+        description="Collector details, wallet selection and quote review require an authenticated session."
+      />
+    ),
+  })
 
 const orderRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () =>
+    protectedRoute,
+
   path: paths.order,
+
   component: () => (
     <RoutePlaceholder
       title="Order status"
@@ -136,20 +200,22 @@ const orderRoute = createRoute({
   ),
 })
 
-const favoritesRoute = createRoute({
-  getParentRoute: () => protectedRoute,
-  path: paths.favorites,
-  component: () => (
-    <RoutePlaceholder
-      title="Favorites"
-      description="Saved NFTs require an authenticated collector session."
-    />
-  ),
-})
+const favoritesRoute =
+  createRoute({
+    getParentRoute: () =>
+      protectedRoute,
+
+    path: paths.favorites,
+
+    component: FavoritesPage,
+  })
 
 const profileRoute = createRoute({
-  getParentRoute: () => protectedRoute,
+  getParentRoute: () =>
+    protectedRoute,
+
   path: paths.profile,
+
   component: () => (
     <RoutePlaceholder
       title="Collector profile"
@@ -158,42 +224,53 @@ const profileRoute = createRoute({
   ),
 })
 
-const walletsRoute = createRoute({
-  getParentRoute: () => protectedRoute,
-  path: paths.wallets,
-  component: () => (
-    <RoutePlaceholder
-      title="Wallets"
-      description="Primary and secondary wallet settings require an authenticated session."
-    />
-  ),
-})
+const walletsRoute =
+  createRoute({
+    getParentRoute: () =>
+      protectedRoute,
 
-const routeTree = rootRoute.addChildren([
-  publicRoute.addChildren([
-    homeRoute,
-    marketplaceRoute,
-    nftDetailsRoute,
-    cartRoute,
-    loginRoute,
-    signUpRoute,
-  ]),
-  protectedRoute.addChildren([
-    checkoutRoute,
-    orderRoute,
-    favoritesRoute,
-    profileRoute,
-    walletsRoute,
-  ]),
-])
+    path: paths.wallets,
 
-export const router = createRouter({
-  routeTree,
-  context: { auth: anonymousAuthContext },
-  defaultPreload: 'intent',
-  defaultPreloadStaleTime: 0,
-  scrollRestoration: true,
-})
+    component: () => (
+      <RoutePlaceholder
+        title="Wallets"
+        description="Primary and secondary wallet settings require an authenticated session."
+      />
+    ),
+  })
+
+const routeTree =
+  rootRoute.addChildren([
+    publicRoute.addChildren([
+      homeRoute,
+      marketplaceRoute,
+      nftDetailsRoute,
+      cartRoute,
+      loginRoute,
+      signUpRoute,
+    ]),
+
+    protectedRoute.addChildren([
+      checkoutRoute,
+      orderRoute,
+      favoritesRoute,
+      profileRoute,
+      walletsRoute,
+    ]),
+  ])
+
+export const router =
+  createRouter({
+    routeTree,
+
+    context: {
+      auth: anonymousAuthContext,
+    },
+
+    defaultPreload: 'intent',
+    defaultPreloadStaleTime: 0,
+    scrollRestoration: true,
+  })
 
 declare module '@tanstack/react-router' {
   interface Register {

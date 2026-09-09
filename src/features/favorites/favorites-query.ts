@@ -43,10 +43,15 @@ export function useToggleFavoriteMutation(userId: string | null) {
     ToggleFavoriteContext
   >({
     mutationFn: ({ nftId, favorite }) => updateFavorite(nftId, favorite),
+
     onMutate: async ({ nftId, favorite }) => {
       await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueryData<FavoriteCollection>(queryKey)
+
+      const previous =
+        queryClient.getQueryData<FavoriteCollection>(queryKey)
+
       const currentIds = previous?.nftIds ?? []
+
       const nftIds = favorite
         ? currentIds.includes(nftId)
           ? currentIds
@@ -60,19 +65,30 @@ export function useToggleFavoriteMutation(userId: string | null) {
 
       return { previous }
     },
+
     onError: (_error, _variables, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous)
       } else {
-        queryClient.removeQueries({ queryKey, exact: true })
+        queryClient.removeQueries({
+          queryKey,
+          exact: true,
+        })
       }
     },
+
     onSuccess: (response) => {
-      queryClient.setQueryData<FavoriteCollection>(queryKey, (current) => ({
-        nftIds: current?.nftIds ?? [],
-        version: response.version,
-      }))
+      queryClient.setQueryData<FavoriteCollection>(
+        queryKey,
+        (current) => ({
+          nftIds: current?.nftIds ?? [],
+          version: response.version,
+        }),
+      )
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey })
+    },
   })
 }
