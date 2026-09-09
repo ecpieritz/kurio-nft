@@ -1,5 +1,6 @@
 export interface ImageAsset {
   src: string
+  srcSet: string
   alt: string
   width: number
   height: number
@@ -7,28 +8,39 @@ export interface ImageAsset {
 
 export const nftArtwork = {
   emeraldApe: {
-    src: '/images/monkey-01.png',
+    src: '/images/monkey-01-800.webp',
+    srcSet:
+      '/images/monkey-01-400.webp 400w, /images/monkey-01-800.webp 800w',
     alt: 'Emerald Ape wearing round sunglasses and a green varsity jacket',
-    width: 1254,
-    height: 1254,
+    width: 800,
+    height: 800,
   },
+
   violetNomad: {
-    src: '/images/monkey-02.png',
+    src: '/images/monkey-02-800.webp',
+    srcSet:
+      '/images/monkey-02-400.webp 400w, /images/monkey-02-800.webp 800w',
     alt: 'Violet Nomad wearing an olive bucket hat and a purple hoodie',
-    width: 1254,
-    height: 1254,
+    width: 800,
+    height: 800,
   },
+
   ivoryBaron: {
-    src: '/images/monkey-03.png',
+    src: '/images/monkey-03-800.webp',
+    srcSet:
+      '/images/monkey-03-400.webp 400w, /images/monkey-03-800.webp 800w',
     alt: 'Ivory Baron wearing an ivory suit over a dark turtleneck',
-    width: 1254,
-    height: 1254,
+    width: 800,
+    height: 800,
   },
+
   goldenBeat: {
-    src: '/images/monkey-04.png',
+    src: '/images/monkey-04-800.webp',
+    srcSet:
+      '/images/monkey-04-400.webp 400w, /images/monkey-04-800.webp 800w',
     alt: 'Golden Beat wearing green headphones and a cream jacket',
-    width: 1254,
-    height: 1254,
+    width: 800,
+    height: 800,
   },
 } as const satisfies Record<string, ImageAsset>
 
@@ -50,5 +62,8 @@ export const iconAssets = {
   userBold: '/images/icons/ic-user-bold.svg',
 } as const
 
-export type NftArtworkName = keyof typeof nftArtwork
-export type IconName = keyof typeof iconAssets
+export type NftArtworkName =
+  keyof typeof nftArtwork
+
+export type IconName =
+  keyof typeof iconAssets

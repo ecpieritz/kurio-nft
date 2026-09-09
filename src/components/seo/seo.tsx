@@ -29,7 +29,7 @@ export function Seo({
   title,
   description,
   path,
-  image = '/images/monkey-01.png',
+  image = '/images/monkey-01-800.webp',
   noIndex,
 }: SeoProps) {
   useEffect(() => {
