@@ -1,14 +1,8 @@
 import { apiRequest } from '@/lib/api/client'
-import type {
-  NftDetails,
-  NftListRequest,
-  NftListResponse,
-} from '@/lib/api/contracts'
+import type { NftDetails, NftListRequest, NftListResponse } from '@/lib/api/contracts'
 import { endpoints } from '@/lib/api/endpoints'
 
-function createSearchParams(
-  request: NftListRequest,
-): URLSearchParams {
+function createSearchParams(request: NftListRequest): URLSearchParams {
   const params = new URLSearchParams({
     sort: request.sort,
     page: String(request.page),
@@ -20,36 +14,20 @@ function createSearchParams(
   }
 
   if (request.minPriceEth) {
-    params.set(
-      'minPriceEth',
-      request.minPriceEth,
-    )
+    params.set('minPriceEth', request.minPriceEth)
   }
 
   if (request.maxPriceEth) {
-    params.set(
-      'maxPriceEth',
-      request.maxPriceEth,
-    )
+    params.set('maxPriceEth', request.maxPriceEth)
   }
 
-  request.categories?.forEach(
-    (category) => {
-      params.append(
-        'category',
-        category,
-      )
-    },
-  )
+  request.categories?.forEach((category) => {
+    params.append('category', category)
+  })
 
-  request.networks?.forEach(
-    (network) => {
-      params.append(
-        'network',
-        network,
-      )
-    },
-  )
+  request.networks?.forEach((network) => {
+    params.append('network', network)
+  })
 
   return params
 }
@@ -66,10 +44,7 @@ export async function fetchNfts(
   })
 }
 
-export async function fetchNftDetails(
-  nftId: string,
-  signal?: AbortSignal,
-): Promise<NftDetails> {
+export async function fetchNftDetails(nftId: string, signal?: AbortSignal): Promise<NftDetails> {
   return apiRequest<NftDetails>({
     method: 'GET',
     url: endpoints.nfts.details(nftId),

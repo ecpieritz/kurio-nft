@@ -139,7 +139,7 @@ export const authHandlers = [
       )
     }
 
-    const expiresAt = new Date(Date.now() + 60 * 60_000).toISOString()
+    const expiresAt = '9999-12-31T23:59:59.999Z'
     const sessionToken = `mock-session-${user.id}-${state.revision + 1}`
     state.sessions.push({ id: sessionToken, userId: user.id, expiresAt })
     state.revision += 1
@@ -315,12 +315,17 @@ export const authHandlers = [
       version: 1,
       updatedAt: createdAt,
     })
+    const expiresAt = '9999-12-31T23:59:59.999Z'
+    const sessionToken = `mock-session-${user.id}-${state.revision + 1}`
+    state.sessions.push({ id: sessionToken, userId: user.id, expiresAt })
     state.revision += 1
     mockDatabase.write(state)
 
     const response: RegisterResponse = {
       user: toSessionUser(user),
       createdAt,
+      sessionToken,
+      expiresAt,
     }
 
     return HttpResponse.json(response, { status: 201 })

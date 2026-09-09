@@ -1,116 +1,63 @@
-function encodePathSegment(
-  value: string,
-): string {
-  return encodeURIComponent(
-    value,
-  )
+function encodePathSegment(value: string): string {
+  return encodeURIComponent(value)
 }
 
 export const endpoints = {
   auth: {
-    register:
-      '/auth/register',
+    register: '/auth/register',
 
-    login:
-      '/auth/login',
+    login: '/auth/login',
 
-    session:
-      '/auth/session',
+    session: '/auth/session',
 
-    logout:
-      '/auth/logout',
+    logout: '/auth/logout',
   },
 
   nfts: {
-    list:
-      '/nfts',
+    list: '/nfts',
 
-    details: (
-      nftId: string,
-    ) =>
-      `/nfts/${encodePathSegment(
-        nftId,
-      )}`,
+    details: (nftId: string) => `/nfts/${encodePathSegment(nftId)}`,
   },
 
   favorites: {
-    list:
-      '/favorites',
+    list: '/favorites',
 
-    item: (
-      nftId: string,
-    ) =>
-      `/favorites/${encodePathSegment(
-        nftId,
-      )}`,
+    item: (nftId: string) => `/favorites/${encodePathSegment(nftId)}`,
   },
 
   cart: {
-    current:
-      '/cart',
+    current: '/cart',
 
-    items:
-      '/cart/items',
+    items: '/cart/items',
 
-    item: (
-      itemId: string,
-    ) =>
-      `/cart/items/${encodePathSegment(
-        itemId,
-      )}`,
+    item: (itemId: string) => `/cart/items/${encodePathSegment(itemId)}`,
   },
 
   quotes: {
-    create:
-      '/quotes',
+    create: '/quotes',
 
-    details: (
-      quoteId: string,
-    ) =>
-      `/quotes/${encodePathSegment(
-        quoteId,
-      )}`,
+    details: (quoteId: string) => `/quotes/${encodePathSegment(quoteId)}`,
   },
 
   orders: {
-    create:
-      '/orders',
+    create: '/orders',
 
-    details: (
-      orderId: string,
-    ) =>
-      `/orders/${encodePathSegment(
-        orderId,
-      )}`,
+    details: (orderId: string) => `/orders/${encodePathSegment(orderId)}`,
 
-    recovery: (
-      idempotencyKey: string,
-    ) =>
-      `/orders/recovery/${encodePathSegment(
-        idempotencyKey,
-      )}`,
+    recovery: (idempotencyKey: string) => `/orders/recovery/${encodePathSegment(idempotencyKey)}`,
   },
 
   profile: {
-    details:
-      '/profile',
+    details: '/profile',
 
-    avatar:
-      '/profile/avatar',
+    avatar: '/profile/avatar',
 
-    password:
-      '/profile/password',
+    password: '/profile/password',
   },
 
   wallets: {
-    list:
-      '/wallets',
+    list: '/wallets',
 
-    item: (
-      walletId: string,
-    ) =>
-      `/wallets/${encodePathSegment(
-        walletId,
-      )}`,
+    item: (walletId: string) => `/wallets/${encodePathSegment(walletId)}`,
   },
 } as const

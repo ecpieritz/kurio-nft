@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AuthContext, type AuthContextValue } from '@/features/auth/session/auth-context'
 import { authQueryKeys } from '@/features/auth/session/auth-query-keys'
 import { fetchSession, loginAccount, logoutAccount } from '@/features/auth/session/auth-api'
+import { registerAccount } from '@/features/auth/registration/register-api'
 import { clearReturnTo } from '@/lib/auth/navigation-context'
 import {
   isSessionInvalidationError,
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   })
 
   const loginMutation = useMutation({ mutationFn: loginAccount, retry: false })
+  const registerMutation = useMutation({ mutationFn: registerAccount, retry: false })
   const logoutMutation = useMutation({ mutationFn: logoutAccount, retry: false })
 
   useEffect(() => subscribeToSessionExpiration(() => expireSession()), [expireSession])
@@ -83,6 +85,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
         })
         return response.user
       },
+      register: async (request) => {
+        const response = await registerMutation.mutateAsync(request)
+        clearPrivateQueries()
+        setSessionToken(response.sessionToken)
+        setToken(response.sessionToken)
+        setSessionExpiredAt(null)
+        setLoginCompletedAt(Date.now())
+        queryClient.setQueryData(authQueryKeys.session, {
+          user: response.user,
+          expiresAt: response.expiresAt,
+        })
+        return response
+      },
       logout: async () => {
         try {
           await logoutMutation.mutateAsync()
@@ -105,6 +120,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     loginCompletedAt,
     logoutMutation,
     queryClient,
+    registerMutation,
     sessionExpiredAt,
     sessionQuery,
     token,

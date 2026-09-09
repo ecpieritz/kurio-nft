@@ -12,18 +12,10 @@ export function PasswordVisibilityButton({
   return (
     <button
       type="button"
-      aria-label={
-        visible
-          ? `Ocultar ${label}`
-          : `Mostrar ${label}`
-      }
-      aria-pressed={
-        visible
-      }
+      aria-label={visible ? `Ocultar ${label}` : `Mostrar ${label}`}
+      aria-pressed={visible}
       className="absolute inset-y-0 right-3 my-auto grid size-7 place-items-center text-primary transition-colors hover:text-primary/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      onClick={
-        onClick
-      }
+      onClick={onClick}
     >
       <svg
         aria-hidden="true"
@@ -37,15 +29,9 @@ export function PasswordVisibilityButton({
       >
         <path d="M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z" />
 
-        <circle
-          cx="12"
-          cy="12"
-          r="2.5"
-        />
+        <circle cx="12" cy="12" r="2.5" />
 
-        {!visible && (
-          <path d="M4 20 20 4" />
-        )}
+        {!visible && <path d="M4 20 20 4" />}
       </svg>
     </button>
   )

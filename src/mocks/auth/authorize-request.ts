@@ -27,10 +27,7 @@ function getBearerToken(request: Request): string | undefined {
 function reject(code: 'UNAUTHORIZED' | 'SESSION_EXPIRED', message: string): RejectedRequest {
   return {
     authorized: false,
-    response: HttpResponse.json(
-      { error: { code, message, retryable: false } },
-      { status: 401 },
-    ),
+    response: HttpResponse.json({ error: { code, message, retryable: false } }, { status: 401 }),
   }
 }
 

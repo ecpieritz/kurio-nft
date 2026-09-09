@@ -1,7 +1,4 @@
-import {
-  http,
-  HttpResponse,
-} from 'msw'
+import { http, HttpResponse } from 'msw'
 
 import type {
   AddCartItemRequest,
@@ -18,76 +15,45 @@ import type { MockDatabaseState } from '@/mocks/database/types'
 import { applyNetworkScenario } from '@/mocks/scenarios/network'
 import { getActiveScenario } from '@/mocks/scenarios/runtime'
 
-const VISITOR_HEADER =
-  'X-Kurio-Visitor-Id'
+const VISITOR_HEADER = 'X-Kurio-Visitor-Id'
 
-function isRecord(
-  value: unknown,
-): value is Record<
-  string,
-  unknown
-> {
-  return (
-    typeof value ===
-      'object' &&
-    value !== null
-  )
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
-function parseAddRequest(
-  value: unknown,
-): AddCartItemRequest | undefined {
+function parseAddRequest(value: unknown): AddCartItemRequest | undefined {
   if (
     !isRecord(value) ||
-    typeof value.nftId !==
-      'string' ||
-    typeof value.editionId !==
-      'string' ||
-    typeof value.quantity !==
-      'number' ||
-    !Number.isInteger(
-      value.quantity,
-    )
+    typeof value.nftId !== 'string' ||
+    typeof value.editionId !== 'string' ||
+    typeof value.quantity !== 'number' ||
+    !Number.isInteger(value.quantity)
   ) {
     return undefined
   }
 
   return {
     nftId: value.nftId,
-    editionId:
-      value.editionId,
-    quantity:
-      value.quantity,
+    editionId: value.editionId,
+    quantity: value.quantity,
   }
 }
 
-function parseUpdateRequest(
-  value: unknown,
-):
-  | UpdateCartItemRequest
-  | undefined {
+function parseUpdateRequest(value: unknown): UpdateCartItemRequest | undefined {
   if (
     !isRecord(value) ||
-    typeof value.quantity !==
-      'number' ||
-    !Number.isInteger(
-      value.quantity,
-    ) ||
-    typeof value.expectedVersion !==
-      'number' ||
-    !Number.isInteger(
-      value.expectedVersion,
-    )
+    typeof value.quantity !== 'number' ||
+    !Number.isInteger(value.quantity) ||
+    typeof value.expectedVersion !== 'number' ||
+    !Number.isInteger(value.expectedVersion)
   ) {
     return undefined
   }
 
   return {
-    quantity:
-      value.quantity,
+    quantity: value.quantity,
 
-    expectedVersion:
-      value.expectedVersion,
+    expectedVersion: value.expectedVersion,
   }
 }
 
@@ -95,10 +61,7 @@ function errorResponse(
   code: ApiErrorResponse['error']['code'],
   message: string,
   status: number,
-  details?: Record<
-    string,
-    unknown
-  >,
+  details?: Record<string, unknown>,
 ): HttpResponse<ApiErrorResponse> {
   return HttpResponse.json(
     {
@@ -115,17 +78,8 @@ function errorResponse(
   )
 }
 
-function getVisitorId(
-  request: Request,
-): string | undefined {
-  return (
-    request.headers
-      .get(
-        VISITOR_HEADER,
-      )
-      ?.trim() ||
-    undefined
-  )
+function getVisitorId(request: Request): string | undefined {
+  return request.headers.get(VISITOR_HEADER)?.trim() || undefined
 }
 
 interface CartOwner {
@@ -144,30 +98,16 @@ interface ResolvedOwnerFailure {
   response: HttpResponse<ApiErrorResponse>
 }
 
-type ResolvedOwner =
-  | ResolvedOwnerSuccess
-  | ResolvedOwnerFailure
+type ResolvedOwner = ResolvedOwnerSuccess | ResolvedOwnerFailure
 
-function resolveOwner(
-  request: Request,
-): ResolvedOwner {
-  if (
-    request.headers.has(
-      'Authorization',
-    )
-  ) {
-    const authorization =
-      authorizeMockRequest(
-        request,
-      )
+function resolveOwner(request: Request): ResolvedOwner {
+  if (request.headers.has('Authorization')) {
+    const authorization = authorizeMockRequest(request)
 
-    if (
-      !authorization.authorized
-    ) {
+    if (!authorization.authorized) {
       return {
         ok: false,
-        response:
-          authorization.response,
+        response: authorization.response,
       }
     }
 
@@ -175,35 +115,26 @@ function resolveOwner(
       ok: true,
 
       owner: {
-        userId:
-          authorization.userId,
+        userId: authorization.userId,
 
-        visitorId:
-          getVisitorId(
-            request,
-          ) ?? null,
+        visitorId: getVisitorId(request) ?? null,
       },
 
-      state:
-        authorization.state,
+      state: authorization.state,
     }
   }
 
-  const visitorId =
-    getVisitorId(
-      request,
-    )
+  const visitorId = getVisitorId(request)
 
   if (!visitorId) {
     return {
       ok: false,
 
-      response:
-        errorResponse(
-          'VALIDATION_ERROR',
-          'Não foi possível identificar o carrinho deste visitante.',
-          422,
-        ),
+      response: errorResponse(
+        'VALIDATION_ERROR',
+        'Não foi possível identificar o carrinho deste visitante.',
+        422,
+      ),
     }
   }
 
@@ -215,28 +146,16 @@ function resolveOwner(
       visitorId,
     },
 
-    state:
-      mockDatabase.read(),
+    state: mockDatabase.read(),
   }
 }
 
-function findCart(
-  state: MockDatabaseState,
-  owner: CartOwner,
-): Cart | undefined {
+function findCart(state: MockDatabaseState, owner: CartOwner): Cart | undefined {
   if (owner.userId) {
-    return state.carts.find(
-      (cart) =>
-        cart.userId ===
-        owner.userId,
-    )
+    return state.carts.find((cart) => cart.userId === owner.userId)
   }
 
-  return state.carts.find(
-    (cart) =>
-      cart.visitorId ===
-      owner.visitorId,
-  )
+  return state.carts.find((cart) => cart.visitorId === owner.visitorId)
 }
 
 interface CartLookup {
@@ -244,15 +163,8 @@ interface CartLookup {
   created: boolean
 }
 
-function getOrCreateCart(
-  state: MockDatabaseState,
-  owner: CartOwner,
-): CartLookup {
-  const existingCart =
-    findCart(
-      state,
-      owner,
-    )
+function getOrCreateCart(state: MockDatabaseState, owner: CartOwner): CartLookup {
+  const existingCart = findCart(state, owner)
 
   if (existingCart) {
     return {
@@ -261,22 +173,15 @@ function getOrCreateCart(
     }
   }
 
-  const now =
-    new Date().toISOString()
+  const now = new Date().toISOString()
 
-  const ownerId =
-    owner.userId ??
-    owner.visitorId ??
-    `guest-${state.revision + 1}`
+  const ownerId = owner.userId ?? owner.visitorId ?? `guest-${state.revision + 1}`
 
   const cart: Cart = {
     id: `cart-${ownerId}`,
     userId: owner.userId,
 
-    visitorId:
-      owner.userId
-        ? null
-        : owner.visitorId,
+    visitorId: owner.userId ? null : owner.visitorId,
 
     items: [],
     version: 1,
@@ -291,102 +196,47 @@ function getOrCreateCart(
   }
 }
 
-function getEditionAvailability(
-  nft: NftDetails,
-  editionId: string,
-): number | undefined {
-  const edition =
-    nft.editions.find(
-      (candidate) =>
-        candidate.id ===
-        editionId,
-    )
+function getEditionAvailability(nft: NftDetails, editionId: string): number | undefined {
+  const edition = nft.editions.find((candidate) => candidate.id === editionId)
 
   if (!edition) {
     return undefined
   }
 
-  if (
-    getActiveScenario()
-      .flags
-      .editionSoldOut
-  ) {
+  if (getActiveScenario().flags.editionSoldOut) {
     return 0
   }
 
   return edition.availableQuantity
 }
 
-function refreshCartItem(
-  state: MockDatabaseState,
-  item: CartItem,
-): boolean {
-  const nft =
-    state.nfts.find(
-      (candidate) =>
-        candidate.id ===
-        item.nftId,
-    )
+function refreshCartItem(state: MockDatabaseState, item: CartItem): boolean {
+  const nft = state.nfts.find((candidate) => candidate.id === item.nftId)
 
-  const nextAvailableQuantity =
-    nft
-      ? getEditionAvailability(
-          nft,
-          item.editionId,
-        ) ?? 0
-      : 0
+  const nextAvailableQuantity = nft ? (getEditionAvailability(nft, item.editionId) ?? 0) : 0
 
   const nextAvailabilityChanged =
-    nextAvailableQuantity !==
-      item.availableQuantity ||
-    item.quantity >
-      nextAvailableQuantity
+    nextAvailableQuantity !== item.availableQuantity || item.quantity > nextAvailableQuantity
 
   const nextPriceChanged =
-    !nft ||
-    item.unitPriceEth !==
-      nft.priceEth ||
-    getActiveScenario()
-      .flags
-      .priceChanged ===
-      true
+    !nft || item.unitPriceEth !== nft.priceEth || getActiveScenario().flags.priceChanged === true
 
   const changed =
-    item.availableQuantity !==
-      nextAvailableQuantity ||
-    item.availabilityChanged !==
-      nextAvailabilityChanged ||
-    item.priceChanged !==
-      nextPriceChanged
+    item.availableQuantity !== nextAvailableQuantity ||
+    item.availabilityChanged !== nextAvailabilityChanged ||
+    item.priceChanged !== nextPriceChanged
 
-  item.availableQuantity =
-    nextAvailableQuantity
+  item.availableQuantity = nextAvailableQuantity
 
-  item.availabilityChanged =
-    nextAvailabilityChanged
+  item.availabilityChanged = nextAvailabilityChanged
 
-  item.priceChanged =
-    nextPriceChanged
+  item.priceChanged = nextPriceChanged
 
   return changed
 }
 
-function refreshCart(
-  state: MockDatabaseState,
-  cart: Cart,
-): boolean {
-  return cart.items.reduce(
-    (
-      changed,
-      item,
-    ) =>
-      refreshCartItem(
-        state,
-        item,
-      ) ||
-      changed,
-    false,
-  )
+function refreshCart(state: MockDatabaseState, cart: Cart): boolean {
+  return cart.items.reduce((changed, item) => refreshCartItem(state, item) || changed, false)
 }
 
 function mergeVisitorCartIntoUserCart(
@@ -398,121 +248,72 @@ function mergeVisitorCartIntoUserCart(
     return false
   }
 
-  const visitorCart =
-    state.carts.find(
-      (cart) =>
-        cart.userId ===
-          null &&
-        cart.visitorId ===
-          visitorId,
-    )
+  const visitorCart = state.carts.find(
+    (cart) => cart.userId === null && cart.visitorId === visitorId,
+  )
 
-  if (
-    !visitorCart ||
-    visitorCart.items.length ===
-      0
-  ) {
+  if (!visitorCart || visitorCart.items.length === 0) {
     return false
   }
 
-  const now =
-    new Date().toISOString()
+  const now = new Date().toISOString()
 
-  visitorCart.items.forEach(
-    (visitorItem) => {
-      const nft =
-        state.nfts.find(
-          (candidate) =>
-            candidate.id ===
-            visitorItem.nftId,
-        )
+  visitorCart.items.forEach((visitorItem) => {
+    const nft = state.nfts.find((candidate) => candidate.id === visitorItem.nftId)
 
-      const availableQuantity =
-        nft
-          ? getEditionAvailability(
-              nft,
-              visitorItem.editionId,
-            ) ?? 0
-          : 0
+    const availableQuantity = nft ? (getEditionAvailability(nft, visitorItem.editionId) ?? 0) : 0
 
-      if (
-        !nft ||
-        availableQuantity <=
-          0
-      ) {
-        return
-      }
+    if (!nft || availableQuantity <= 0) {
+      return
+    }
 
-      const existingItem =
-        userCart.items.find(
-          (item) =>
-            item.nftId ===
-              visitorItem.nftId &&
-            item.editionId ===
-              visitorItem.editionId,
-        )
+    const existingItem = userCart.items.find(
+      (item) => item.nftId === visitorItem.nftId && item.editionId === visitorItem.editionId,
+    )
 
-      if (existingItem) {
-        existingItem.quantity =
-          Math.min(
-            availableQuantity,
-
-            existingItem.quantity +
-              visitorItem.quantity,
-          )
-
-        existingItem.unitPriceEth =
-          nft.priceEth
-
-        existingItem.availableQuantity =
-          availableQuantity
-
-        existingItem.priceChanged =
-          false
-
-        existingItem.availabilityChanged =
-          false
-
-        existingItem.version +=
-          1
-
-        return
-      }
-
-      userCart.items.push({
-        ...structuredClone(
-          visitorItem,
-        ),
-
-        id: `cart-item-${state.revision + 1}-${userCart.items.length + 1}`,
-
-        unitPriceEth:
-          nft.priceEth,
-
-        quantity:
-          Math.min(
-            visitorItem.quantity,
-            availableQuantity,
-          ),
-
+    if (existingItem) {
+      existingItem.quantity = Math.min(
         availableQuantity,
 
-        priceChanged:
-          false,
+        existingItem.quantity + visitorItem.quantity,
+      )
 
-        availabilityChanged:
-          false,
+      existingItem.unitPriceEth = nft.priceEth
 
-        version: 1,
-      })
-    },
-  )
+      existingItem.availableQuantity = availableQuantity
+
+      existingItem.priceChanged = false
+
+      existingItem.availabilityChanged = false
+
+      existingItem.version += 1
+
+      return
+    }
+
+    userCart.items.push({
+      ...structuredClone(visitorItem),
+
+      id: `cart-item-${state.revision + 1}-${userCart.items.length + 1}`,
+
+      unitPriceEth: nft.priceEth,
+
+      quantity: Math.min(visitorItem.quantity, availableQuantity),
+
+      availableQuantity,
+
+      priceChanged: false,
+
+      availabilityChanged: false,
+
+      version: 1,
+    })
+  })
 
   visitorCart.items = []
 
   visitorCart.version += 1
-  visitorCart.updatedAt =
-    now
+  visitorCart.updatedAt = now
 
   userCart.version += 1
   userCart.updatedAt = now
@@ -520,129 +321,68 @@ function mergeVisitorCartIntoUserCart(
   return true
 }
 
-function persistState(
-  state: MockDatabaseState,
-): void {
+function persistState(state: MockDatabaseState): void {
   state.revision += 1
 
-  mockDatabase.write(
-    state,
-  )
+  mockDatabase.write(state)
 }
 
 export const cartHandlers = [
   http.get(
     '*/api/cart',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'cart',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('cart')
 
       if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const resolved =
-        resolveOwner(
-          request,
-        )
+      const resolved = resolveOwner(request)
 
       if (!resolved.ok) {
         return resolved.response
       }
 
-      const {
-        owner,
-        state,
-      } = resolved
+      const { owner, state } = resolved
 
-      const {
-        cart,
-        created,
-      } =
-        getOrCreateCart(
-          state,
-          owner,
-        )
+      const { cart, created } = getOrCreateCart(state, owner)
 
-      const merged =
-        owner.userId
-          ? mergeVisitorCartIntoUserCart(
-              state,
-              cart,
-              owner.visitorId,
-            )
-          : false
+      const merged = owner.userId
+        ? mergeVisitorCartIntoUserCart(state, cart, owner.visitorId)
+        : false
 
-      const refreshed =
-        refreshCart(
-          state,
-          cart,
-        )
+      const refreshed = refreshCart(state, cart)
 
-      if (
-        created ||
-        merged ||
-        refreshed
-      ) {
-        persistState(
-          state,
-        )
+      if (created || merged || refreshed) {
+        persistState(state)
       }
 
-      return HttpResponse.json(
-        structuredClone(
-          cart,
-        ),
-      )
+      return HttpResponse.json(structuredClone(cart))
     },
   ),
 
   http.post(
     '*/api/cart/items',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'cart',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('cart')
 
       if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const resolved =
-        resolveOwner(
-          request,
-        )
+      const resolved = resolveOwner(request)
 
       if (!resolved.ok) {
         return resolved.response
       }
 
-      const requestBody: unknown =
-        await request
-          .json()
-          .catch(
-            () =>
-              undefined,
-          )
+      const requestBody: unknown = await request.json().catch(() => undefined)
 
-      const payload =
-        parseAddRequest(
-          requestBody,
-        )
+      const payload = parseAddRequest(requestBody)
 
-      if (
-        !payload ||
-        payload.quantity < 1
-      ) {
+      if (!payload || payload.quantity < 1) {
         return errorResponse(
           'VALIDATION_ERROR',
           'Informe um NFT, uma edição e uma quantidade válida.',
@@ -650,86 +390,39 @@ export const cartHandlers = [
         )
       }
 
-      const {
-        owner,
-        state,
-      } = resolved
+      const { owner, state } = resolved
 
-      const { cart } =
-        getOrCreateCart(
-          state,
-          owner,
-        )
+      const { cart } = getOrCreateCart(state, owner)
 
       if (owner.userId) {
-        mergeVisitorCartIntoUserCart(
-          state,
-          cart,
-          owner.visitorId,
-        )
+        mergeVisitorCartIntoUserCart(state, cart, owner.visitorId)
       }
 
-      const nft =
-        state.nfts.find(
-          (candidate) =>
-            candidate.id ===
-            payload.nftId,
-        )
+      const nft = state.nfts.find((candidate) => candidate.id === payload.nftId)
 
-      const edition =
-        nft?.editions.find(
-          (candidate) =>
-            candidate.id ===
-            payload.editionId,
-        )
+      const edition = nft?.editions.find((candidate) => candidate.id === payload.editionId)
 
-      if (
-        !nft ||
-        !edition
-      ) {
-        return errorResponse(
-          'NOT_FOUND',
-          'NFT ou edição não encontrada.',
-          404,
-        )
+      if (!nft || !edition) {
+        return errorResponse('NOT_FOUND', 'NFT ou edição não encontrada.', 404)
       }
 
-      const availableQuantity =
-        getEditionAvailability(
-          nft,
-          edition.id,
-        ) ?? 0
+      const availableQuantity = getEditionAvailability(nft, edition.id) ?? 0
 
-      const existingItem =
-        cart.items.find(
-          (item) =>
-            item.nftId ===
-              nft.id &&
-            item.editionId ===
-              edition.id,
-        )
+      const existingItem = cart.items.find(
+        (item) => item.nftId === nft.id && item.editionId === edition.id,
+      )
 
-      const requestedQuantity =
-        (existingItem
-          ?.quantity ??
-          0) +
-        payload.quantity
+      const requestedQuantity = (existingItem?.quantity ?? 0) + payload.quantity
 
-      if (
-        !edition.purchasable ||
-        requestedQuantity >
-          availableQuantity
-      ) {
+      if (!edition.purchasable || requestedQuantity > availableQuantity) {
         return errorResponse(
           'AVAILABILITY_CONFLICT',
           'A quantidade solicitada não está mais disponível.',
           409,
           {
-            nftId:
-              nft.id,
+            nftId: nft.id,
 
-            editionId:
-              edition.id,
+            editionId: edition.id,
 
             requestedQuantity,
 
@@ -739,55 +432,40 @@ export const cartHandlers = [
       }
 
       if (existingItem) {
-        existingItem.quantity =
-          requestedQuantity
+        existingItem.quantity = requestedQuantity
 
-        existingItem.unitPriceEth =
-          nft.priceEth
+        existingItem.unitPriceEth = nft.priceEth
 
-        existingItem.availableQuantity =
-          availableQuantity
+        existingItem.availableQuantity = availableQuantity
 
-        existingItem.priceChanged =
-          false
+        existingItem.priceChanged = false
 
-        existingItem.availabilityChanged =
-          false
+        existingItem.availabilityChanged = false
 
-        existingItem.version +=
-          1
+        existingItem.version += 1
       } else {
         cart.items.push({
           id: `cart-item-${state.revision + 1}-${cart.items.length + 1}`,
 
-          nftId:
-            nft.id,
+          nftId: nft.id,
 
-          editionId:
-            edition.id,
+          editionId: edition.id,
 
-          tokenId:
-            nft.tokenId,
+          tokenId: nft.tokenId,
 
-          name:
-            nft.name,
+          name: nft.name,
 
-          image:
-            nft.image,
+          image: nft.image,
 
-          unitPriceEth:
-            nft.priceEth,
+          unitPriceEth: nft.priceEth,
 
-          quantity:
-            payload.quantity,
+          quantity: payload.quantity,
 
           availableQuantity,
 
-          priceChanged:
-            false,
+          priceChanged: false,
 
-          availabilityChanged:
-            false,
+          availabilityChanged: false,
 
           version: 1,
         })
@@ -795,307 +473,160 @@ export const cartHandlers = [
 
       cart.version += 1
 
-      cart.updatedAt =
-        new Date().toISOString()
+      cart.updatedAt = new Date().toISOString()
 
-      persistState(
-        state,
-      )
+      persistState(state)
 
-      return HttpResponse.json(
-        structuredClone(
-          cart,
-        ),
-        {
-          status: 201,
-        },
-      )
+      return HttpResponse.json(structuredClone(cart), {
+        status: 201,
+      })
     },
   ),
 
   http.patch(
     '*/api/cart/items/:itemId',
 
-    async ({
-      request,
-      params,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'cart',
-        )
+    async ({ request, params }) => {
+      const scenarioResponse = await applyNetworkScenario('cart')
 
       if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const resolved =
-        resolveOwner(
-          request,
-        )
+      const resolved = resolveOwner(request)
 
       if (!resolved.ok) {
         return resolved.response
       }
 
-      const requestBody: unknown =
-        await request
-          .json()
-          .catch(
-            () =>
-              undefined,
-          )
+      const requestBody: unknown = await request.json().catch(() => undefined)
 
-      const payload =
-        parseUpdateRequest(
-          requestBody,
-        )
+      const payload = parseUpdateRequest(requestBody)
 
-      const itemId =
-        typeof params.itemId ===
-        'string'
-          ? params.itemId
-          : undefined
+      const itemId = typeof params.itemId === 'string' ? params.itemId : undefined
 
-      if (
-        !payload ||
-        payload.quantity < 1 ||
-        !itemId
-      ) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'A quantidade informada é inválida.',
-          422,
-        )
+      if (!payload || payload.quantity < 1 || !itemId) {
+        return errorResponse('VALIDATION_ERROR', 'A quantidade informada é inválida.', 422)
       }
 
-      const {
-        owner,
-        state,
-      } = resolved
+      const { owner, state } = resolved
 
-      const { cart } =
-        getOrCreateCart(
-          state,
-          owner,
-        )
+      const { cart } = getOrCreateCart(state, owner)
 
-      const item =
-        cart.items.find(
-          (candidate) =>
-            candidate.id ===
-            itemId,
-        )
+      const item = cart.items.find((candidate) => candidate.id === itemId)
 
       if (!item) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Item do carrinho não encontrado.',
-          404,
-        )
+        return errorResponse('NOT_FOUND', 'Item do carrinho não encontrado.', 404)
       }
 
-      if (
-        item.version !==
-        payload.expectedVersion
-      ) {
-        return errorResponse(
-          'CONFLICT',
-          'Este item foi atualizado por outra operação.',
-          409,
-          {
-            expectedVersion:
-              payload.expectedVersion,
+      if (item.version !== payload.expectedVersion) {
+        return errorResponse('CONFLICT', 'Este item foi atualizado por outra operação.', 409, {
+          expectedVersion: payload.expectedVersion,
 
-            currentVersion:
-              item.version,
-          },
-        )
+          currentVersion: item.version,
+        })
       }
 
-      const nft =
-        state.nfts.find(
-          (candidate) =>
-            candidate.id ===
-            item.nftId,
-        )
+      const nft = state.nfts.find((candidate) => candidate.id === item.nftId)
 
-      const availableQuantity =
-        nft
-          ? getEditionAvailability(
-              nft,
-              item.editionId,
-            ) ?? 0
-          : 0
+      const availableQuantity = nft ? (getEditionAvailability(nft, item.editionId) ?? 0) : 0
 
-      if (
-        !nft ||
-        payload.quantity >
-          availableQuantity
-      ) {
-        item.availableQuantity =
-          availableQuantity
+      if (!nft || payload.quantity > availableQuantity) {
+        item.availableQuantity = availableQuantity
 
-        item.availabilityChanged =
-          true
+        item.availabilityChanged = true
 
         cart.version += 1
 
-        cart.updatedAt =
-          new Date().toISOString()
+        cart.updatedAt = new Date().toISOString()
 
-        persistState(
-          state,
-        )
+        persistState(state)
 
         return errorResponse(
           'AVAILABILITY_CONFLICT',
           'A quantidade solicitada não está mais disponível.',
           409,
           {
-            nftId:
-              item.nftId,
+            nftId: item.nftId,
 
-            editionId:
-              item.editionId,
+            editionId: item.editionId,
 
-            requestedQuantity:
-              payload.quantity,
+            requestedQuantity: payload.quantity,
 
             availableQuantity,
           },
         )
       }
 
-      item.quantity =
-        payload.quantity
+      item.quantity = payload.quantity
 
-      item.unitPriceEth =
-        nft.priceEth
+      item.unitPriceEth = nft.priceEth
 
-      item.availableQuantity =
-        availableQuantity
+      item.availableQuantity = availableQuantity
 
-      item.priceChanged =
-        false
+      item.priceChanged = false
 
-      item.availabilityChanged =
-        false
+      item.availabilityChanged = false
 
       item.version += 1
 
       cart.version += 1
 
-      cart.updatedAt =
-        new Date().toISOString()
+      cart.updatedAt = new Date().toISOString()
 
-      persistState(
-        state,
-      )
+      persistState(state)
 
-      return HttpResponse.json(
-        structuredClone(
-          cart,
-        ),
-      )
+      return HttpResponse.json(structuredClone(cart))
     },
   ),
 
   http.delete(
     '*/api/cart/items/:itemId',
 
-    async ({
-      request,
-      params,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'cart',
-        )
+    async ({ request, params }) => {
+      const scenarioResponse = await applyNetworkScenario('cart')
 
       if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const resolved =
-        resolveOwner(
-          request,
-        )
+      const resolved = resolveOwner(request)
 
       if (!resolved.ok) {
         return resolved.response
       }
 
-      const itemId =
-        typeof params.itemId ===
-        'string'
-          ? params.itemId
-          : undefined
+      const itemId = typeof params.itemId === 'string' ? params.itemId : undefined
 
       if (!itemId) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'O item do carrinho é inválido.',
-          422,
-        )
+        return errorResponse('VALIDATION_ERROR', 'O item do carrinho é inválido.', 422)
       }
 
-      const {
-        owner,
-        state,
-      } = resolved
+      const { owner, state } = resolved
 
-      const { cart } =
-        getOrCreateCart(
-          state,
-          owner,
-        )
+      const { cart } = getOrCreateCart(state, owner)
 
-      const itemIndex =
-        cart.items.findIndex(
-          (candidate) =>
-            candidate.id ===
-            itemId,
-        )
+      const itemIndex = cart.items.findIndex((candidate) => candidate.id === itemId)
 
-      if (
-        itemIndex < 0
-      ) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Item do carrinho não encontrado.',
-          404,
-        )
+      if (itemIndex < 0) {
+        return errorResponse('NOT_FOUND', 'Item do carrinho não encontrado.', 404)
       }
 
-      cart.items.splice(
-        itemIndex,
-        1,
-      )
+      cart.items.splice(itemIndex, 1)
 
       cart.version += 1
 
-      cart.updatedAt =
-        new Date().toISOString()
+      cart.updatedAt = new Date().toISOString()
 
-      persistState(
-        state,
-      )
+      persistState(state)
 
-      const response: RemoveCartItemResponse =
-        {
-          removedItemId:
-            itemId,
+      const response: RemoveCartItemResponse = {
+        removedItemId: itemId,
 
-          cart:
-            structuredClone(
-              cart,
-            ),
-        }
+        cart: structuredClone(cart),
+      }
 
-      return HttpResponse.json(
-        response,
-      )
+      return HttpResponse.json(response)
     },
   ),
 ]

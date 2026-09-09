@@ -3,18 +3,16 @@ import { Outlet, useLocation } from '@tanstack/react-router'
 import { MobileNavigation } from '@/components/layout/mobile-navigation'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { SiteHeader } from '@/components/layout/site-header'
+import { RouteMetadata } from '@/components/seo/route-metadata'
 
 export function AppShell() {
   const pathname = useLocation({ select: (location) => location.pathname })
   const isAuthRoute = pathname === '/login' || pathname === '/sign-up'
-  const hasMobileNavigation =
-    pathname === '/' ||
-    pathname === '/marketplace' ||
-    pathname === '/favorites' ||
-    pathname === '/profile'
+  const hasMobileNavigation = !isAuthRoute
 
   return (
-    <div className={hasMobileNavigation ? 'pb-20 md:pb-0' : undefined}>
+    <div className={hasMobileNavigation ? 'pb-20 lg:pb-0' : undefined}>
+      <RouteMetadata />
       <a
         href="#main-content"
         className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-control bg-primary px-4 py-3 font-bold text-primary-foreground transition-transform focus:translate-y-0"
@@ -24,7 +22,7 @@ export function AppShell() {
       <SiteHeader />
       <Outlet />
       {!isAuthRoute && <SiteFooter />}
-      <MobileNavigation />
+      {hasMobileNavigation && <MobileNavigation />}
     </div>
   )
 }

@@ -10,18 +10,9 @@ interface NftCardProps {
   className?: string
 }
 
-export function NftCard({
-  nft,
-  priority = false,
-  className,
-}: NftCardProps) {
+export function NftCard({ nft, priority = false, className }: NftCardProps) {
   return (
-    <article
-      className={cn(
-        'group min-w-0',
-        className,
-      )}
-    >
+    <article className={cn('group min-w-0', className)}>
       <div className="relative">
         <Link
           to="/nfts/$nftId"
@@ -48,10 +39,7 @@ export function NftCard({
           />
         </Link>
 
-        <FavoriteButton
-          nftId={nft.id}
-          className="absolute right-3 top-3 z-10"
-        />
+        <FavoriteButton nftId={nft.id} className="absolute right-3 top-3 z-10" />
       </div>
 
       <div className="px-2 pb-2 pt-3">
@@ -62,15 +50,11 @@ export function NftCard({
           }}
           className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <h2 className="truncate text-sm font-medium text-foreground md:text-base">
-            {nft.name}
-          </h2>
+          <h2 className="truncate text-sm font-medium text-foreground md:text-base">{nft.name}</h2>
         </Link>
 
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="font-bold text-primary">
-            {nft.priceEth} ETH
-          </span>
+          <span className="font-bold text-primary">{nft.priceEth} ETH</span>
 
           {nft.previousPriceEth && (
             <span className="text-xs text-muted-foreground line-through">
@@ -80,9 +64,7 @@ export function NftCard({
         </div>
 
         {nft.availableQuantity === 0 && (
-          <span className="mt-2 inline-block text-xs font-semibold text-destructive">
-            Esgotado
-          </span>
+          <span className="mt-2 inline-block text-xs font-semibold text-destructive">Esgotado</span>
         )}
       </div>
     </article>

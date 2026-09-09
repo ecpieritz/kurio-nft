@@ -47,8 +47,7 @@ export function useToggleFavoriteMutation(userId: string | null) {
     onMutate: async ({ nftId, favorite }) => {
       await queryClient.cancelQueries({ queryKey })
 
-      const previous =
-        queryClient.getQueryData<FavoriteCollection>(queryKey)
+      const previous = queryClient.getQueryData<FavoriteCollection>(queryKey)
 
       const currentIds = previous?.nftIds ?? []
 
@@ -78,13 +77,10 @@ export function useToggleFavoriteMutation(userId: string | null) {
     },
 
     onSuccess: (response) => {
-      queryClient.setQueryData<FavoriteCollection>(
-        queryKey,
-        (current) => ({
-          nftIds: current?.nftIds ?? [],
-          version: response.version,
-        }),
-      )
+      queryClient.setQueryData<FavoriteCollection>(queryKey, (current) => ({
+        nftIds: current?.nftIds ?? [],
+        version: response.version,
+      }))
     },
 
     onSettled: () => {

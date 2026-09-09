@@ -23,9 +23,7 @@ export function fetchCart(signal?: AbortSignal): Promise<Cart> {
   })
 }
 
-export function addCartItem(
-  request: AddCartItemRequest,
-): Promise<Cart> {
+export function addCartItem(request: AddCartItemRequest): Promise<Cart> {
   return apiRequest<Cart, AddCartItemRequest>({
     method: 'POST',
     url: endpoints.cart.items,
@@ -34,10 +32,7 @@ export function addCartItem(
   })
 }
 
-export function updateCartItem(
-  itemId: string,
-  request: UpdateCartItemRequest,
-): Promise<Cart> {
+export function updateCartItem(itemId: string, request: UpdateCartItemRequest): Promise<Cart> {
   return apiRequest<Cart, UpdateCartItemRequest>({
     method: 'PATCH',
     url: endpoints.cart.item(itemId),
@@ -46,9 +41,7 @@ export function updateCartItem(
   })
 }
 
-export function removeCartItem(
-  itemId: string,
-): Promise<RemoveCartItemResponse> {
+export function removeCartItem(itemId: string): Promise<RemoveCartItemResponse> {
   return apiRequest<RemoveCartItemResponse>({
     method: 'DELETE',
     url: endpoints.cart.item(itemId),

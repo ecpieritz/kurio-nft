@@ -72,7 +72,7 @@ export function normalizeApiError(error: unknown): ApiClientError {
   if (!axios.isAxiosError(error)) {
     return new ApiClientError({
       code: 'UNKNOWN_ERROR',
-      message: 'An unexpected error occurred.',
+      message: 'Ocorreu um erro inesperado. Tente novamente.',
       retryable: false,
       cause: error,
     })
@@ -81,7 +81,7 @@ export function normalizeApiError(error: unknown): ApiClientError {
   if (axios.isCancel(error)) {
     return new ApiClientError({
       code: 'REQUEST_CANCELLED',
-      message: 'The request was cancelled.',
+      message: 'A solicitação foi cancelada.',
       retryable: false,
       cause: error,
     })
@@ -90,7 +90,7 @@ export function normalizeApiError(error: unknown): ApiClientError {
   if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     return new ApiClientError({
       code: 'TIMEOUT',
-      message: 'The request took too long to complete.',
+      message: 'A solicitação demorou mais que o esperado. Tente novamente.',
       retryable: true,
       cause: error,
     })
@@ -99,7 +99,7 @@ export function normalizeApiError(error: unknown): ApiClientError {
   if (!error.response) {
     return new ApiClientError({
       code: 'NETWORK_ERROR',
-      message: 'The API could not be reached.',
+      message: 'Não foi possível acessar a API. Verifique sua conexão e tente novamente.',
       retryable: true,
       cause: error,
     })
@@ -118,7 +118,7 @@ export function normalizeApiError(error: unknown): ApiClientError {
 
   return new ApiClientError({
     code: getFallbackCode(status),
-    message: 'The API returned an unexpected response.',
+    message: 'A API retornou uma resposta inesperada. Atualize a página e tente novamente.',
     retryable: status >= 500,
     status,
     cause: error,

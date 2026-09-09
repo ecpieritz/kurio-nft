@@ -1,7 +1,4 @@
-import {
-  useEffect,
-  type PropsWithChildren,
-} from 'react'
+import { useEffect, type PropsWithChildren } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { cartQueryKeys } from '@/features/cart/cart-query'
@@ -17,94 +14,58 @@ import type {
 import { getRealtimeSocket } from '@/lib/realtime/socket'
 
 function getEditionUpdate(
-  editions:
-    readonly NftEditionAvailabilityUpdate[],
+  editions: readonly NftEditionAvailabilityUpdate[],
   editionId: string,
 ): NftEditionAvailabilityUpdate | undefined {
-  return editions.find(
-    (edition) =>
-      edition.editionId ===
-      editionId,
-  )
+  return editions.find((edition) => edition.editionId === editionId)
 }
 
-export function RealtimeProvider({
-  children,
-}: PropsWithChildren) {
-  const queryClient =
-    useQueryClient()
+export function RealtimeProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient()
 
   useEffect(() => {
-    const socket =
-      getRealtimeSocket()
+    const socket = getRealtimeSocket()
 
-    function handleNftUpdated(
-      event: NftUpdatedEvent,
-    ): void {
-      queryClient.setQueryData<NftDetails>(
-        catalogQueryKeys.detail(
-          event.nftId,
-        ),
-        (
-          current,
-        ) => {
-          if (!current) {
-            return current
-          }
+    function handleNftUpdated(event: NftUpdatedEvent): void {
+      queryClient.setQueryData<NftDetails>(catalogQueryKeys.detail(event.nftId), (current) => {
+        if (!current) {
+          return current
+        }
 
-          return {
-            ...current,
+        return {
+          ...current,
 
-            priceEth:
-              event.priceEth,
+          priceEth: event.priceEth,
 
-            previousPriceEth:
-              event.previousPriceEth,
+          previousPriceEth: event.previousPriceEth,
 
-            availableQuantity:
-              event.availableQuantity,
+          availableQuantity: event.availableQuantity,
 
-            version:
-              event.version,
+          version: event.version,
 
-            editions:
-              current.editions.map(
-                (
-                  edition,
-                ) => {
-                  const update =
-                    getEditionUpdate(
-                      event.editions,
-                      edition.id,
-                    )
+          editions: current.editions.map((edition) => {
+            const update = getEditionUpdate(event.editions, edition.id)
 
-                  if (!update) {
-                    return edition
-                  }
+            if (!update) {
+              return edition
+            }
 
-                  return {
-                    ...edition,
+            return {
+              ...edition,
 
-                    availableQuantity:
-                      update.availableQuantity,
+              availableQuantity: update.availableQuantity,
 
-                    purchasable:
-                      update.purchasable,
-                  }
-                },
-              ),
-          }
-        },
-      )
+              purchasable: update.purchasable,
+            }
+          }),
+        }
+      })
 
       queryClient.setQueriesData<NftListResponse>(
         {
-          queryKey:
-            catalogQueryKeys.lists(),
+          queryKey: catalogQueryKeys.lists(),
         },
-        (
-          current,
-        ) => {
+        (current) => {
           if (!current) {
             return current
           }
@@ -112,100 +73,64 @@ export function RealtimeProvider({
           return {
             ...current,
 
-            items:
-              current.items.map(
-                (
-                  nft,
-                ) => {
-                  if (
-                    nft.id !==
-                    event.nftId
-                  ) {
-                    return nft
-                  }
+            items: current.items.map((nft) => {
+              if (nft.id !== event.nftId) {
+                return nft
+              }
 
-                  return {
-                    ...nft,
+              return {
+                ...nft,
 
-                    priceEth:
-                      event.priceEth,
+                priceEth: event.priceEth,
 
-                    previousPriceEth:
-                      event.previousPriceEth,
+                previousPriceEth: event.previousPriceEth,
 
-                    availableQuantity:
-                      event.availableQuantity,
+                availableQuantity: event.availableQuantity,
 
-                    version:
-                      event.version,
-                  }
-                },
-              ),
+                version: event.version,
+              }
+            }),
           }
         },
       )
 
       queryClient.setQueriesData<Cart>(
         {
-          queryKey:
-            cartQueryKeys.all,
+          queryKey: cartQueryKeys.all,
         },
-        (
-          current,
-        ) => {
+        (current) => {
           if (!current) {
             return current
           }
 
-          const items =
-            current.items.map(
-              (
-                item,
-              ) => {
-                if (
-                  item.nftId !==
-                  event.nftId
-                ) {
-                  return item
-                }
+          const items = current.items.map((item) => {
+            if (item.nftId !== event.nftId) {
+              return item
+            }
 
-                const edition =
-                  getEditionUpdate(
-                    event.editions,
-                    item.editionId,
-                  )
+            const edition = getEditionUpdate(event.editions, item.editionId)
 
-                const availableQuantity =
-                  edition
-                    ?.availableQuantity ??
-                  event.availableQuantity
+            const availableQuantity = edition?.availableQuantity ?? event.availableQuantity
 
-                const priceChanged =
-                  item.priceChanged ||
-                  item.unitPriceEth !==
-                    event.priceEth
+            const priceChanged = item.priceChanged || item.unitPriceEth !== event.priceEth
 
-                const availabilityChanged =
-                  item.availabilityChanged ||
-                  item.availableQuantity !==
-                    availableQuantity ||
-                  item.quantity >
-                    availableQuantity
+            const availabilityChanged =
+              item.availabilityChanged ||
+              item.availableQuantity !== availableQuantity ||
+              item.quantity > availableQuantity
 
-                return {
-                  ...item,
+            return {
+              ...item,
 
-                  unitPriceEth:
-                    event.priceEth,
+              unitPriceEth: event.priceEth,
 
-                  availableQuantity,
+              availableQuantity,
 
-                  priceChanged,
+              priceChanged,
 
-                  availabilityChanged,
-                }
-              },
-            )
+              availabilityChanged,
+            }
+          })
 
           return {
             ...current,
@@ -215,30 +140,22 @@ export function RealtimeProvider({
       )
 
       queryClient.removeQueries({
-        queryKey:
-          quoteQueryKeys.all,
+        queryKey: quoteQueryKeys.all,
       })
 
       void queryClient.invalidateQueries({
-        queryKey:
-          catalogQueryKeys.lists(),
+        queryKey: catalogQueryKeys.lists(),
       })
     }
 
-    socket.on(
-      'nft.updated',
-      handleNftUpdated,
-    )
+    socket.on('nft.updated', handleNftUpdated)
 
     if (!socket.connected) {
       socket.connect()
     }
 
     return () => {
-      socket.off(
-        'nft.updated',
-        handleNftUpdated,
-      )
+      socket.off('nft.updated', handleNftUpdated)
 
       socket.disconnect()
     }

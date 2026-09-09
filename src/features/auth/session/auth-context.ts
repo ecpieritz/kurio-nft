@@ -1,6 +1,11 @@
 import { createContext } from 'react'
 
-import type { LoginRequest, SessionUser } from '@/lib/api/contracts'
+import type {
+  LoginRequest,
+  RegisterRequest,
+  RegisterResponse,
+  SessionUser,
+} from '@/lib/api/contracts'
 
 export type AuthStatus = 'anonymous' | 'authenticated' | 'pending'
 
@@ -11,6 +16,7 @@ export interface AuthContextValue {
   sessionExpiredAt: number | null
   loginCompletedAt: number | null
   login: (request: LoginRequest) => Promise<SessionUser>
+  register: (request: RegisterRequest) => Promise<RegisterResponse>
   logout: () => Promise<void>
   retrySession: () => Promise<void>
 }

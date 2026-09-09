@@ -1,7 +1,4 @@
-import {
-  http,
-  HttpResponse,
-} from 'msw'
+import { http, HttpResponse } from 'msw'
 
 import type {
   ApiErrorResponse,
@@ -16,156 +13,93 @@ import { hashMockPassword } from '@/mocks/auth/password'
 import { mockDatabase } from '@/mocks/database/database'
 import { applyNetworkScenario } from '@/mocks/scenarios/network'
 
-const emailPattern =
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const usernamePattern =
-  /^[a-zA-Z0-9_]+$/
+const usernamePattern = /^[a-zA-Z0-9_]+$/
 
-const avatarDataUrlPattern =
-  /^data:image\/(?:png|jpeg|webp);base64,/i
+const avatarDataUrlPattern = /^data:image\/(?:png|jpeg|webp);base64,/i
 
-const MAX_AVATAR_DATA_URL_LENGTH =
-  3_000_000
+const MAX_AVATAR_DATA_URL_LENGTH = 3_000_000
 
-function isRecord(
-  value: unknown,
-): value is Record<
-  string,
-  unknown
-> {
-  return (
-    typeof value ===
-      'object' &&
-    value !== null
-  )
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
-function parseUpdateProfileRequest(
-  value: unknown,
-):
-  | UpdateProfileRequest
-  | undefined {
+function parseUpdateProfileRequest(value: unknown): UpdateProfileRequest | undefined {
   if (
     !isRecord(value) ||
-    typeof value.displayName !==
-      'string' ||
-    typeof value.username !==
-      'string' ||
-    typeof value.email !==
-      'string' ||
-    typeof value.ensName !==
-      'string' ||
-    typeof value.walletNickname !==
-      'string' ||
-    typeof value.expectedVersion !==
-      'number' ||
-    !Number.isInteger(
-      value.expectedVersion,
-    )
+    typeof value.displayName !== 'string' ||
+    typeof value.username !== 'string' ||
+    typeof value.email !== 'string' ||
+    typeof value.ensName !== 'string' ||
+    typeof value.walletNickname !== 'string' ||
+    typeof value.expectedVersion !== 'number' ||
+    !Number.isInteger(value.expectedVersion)
   ) {
     return undefined
   }
 
   return {
-    displayName:
-      value.displayName.trim(),
+    displayName: value.displayName.trim(),
 
-    username:
-      value.username.trim(),
+    username: value.username.trim(),
 
-    email:
-      value.email
-        .trim()
-        .toLowerCase(),
+    email: value.email.trim().toLowerCase(),
 
-    ensName:
-      value.ensName.trim(),
+    ensName: value.ensName.trim(),
 
-    walletNickname:
-      value.walletNickname.trim(),
+    walletNickname: value.walletNickname.trim(),
 
-    expectedVersion:
-      value.expectedVersion,
+    expectedVersion: value.expectedVersion,
   }
 }
 
-function parseUpdateAvatarRequest(
-  value: unknown,
-):
-  | UpdateAvatarRequest
-  | undefined {
+function parseUpdateAvatarRequest(value: unknown): UpdateAvatarRequest | undefined {
   if (
     !isRecord(value) ||
-    (
-      value.avatarDataUrl !==
-        null &&
-      typeof value.avatarDataUrl !==
-        'string'
-    ) ||
-    typeof value.expectedVersion !==
-      'number' ||
-    !Number.isInteger(
-      value.expectedVersion,
-    )
+    (value.avatarDataUrl !== null && typeof value.avatarDataUrl !== 'string') ||
+    typeof value.expectedVersion !== 'number' ||
+    !Number.isInteger(value.expectedVersion)
   ) {
     return undefined
   }
 
   return {
-    avatarDataUrl:
-      value.avatarDataUrl,
+    avatarDataUrl: value.avatarDataUrl,
 
-    expectedVersion:
-      value.expectedVersion,
+    expectedVersion: value.expectedVersion,
   }
 }
 
-function parseChangePasswordRequest(
-  value: unknown,
-):
-  | ChangePasswordRequest
-  | undefined {
+function parseChangePasswordRequest(value: unknown): ChangePasswordRequest | undefined {
   if (
     !isRecord(value) ||
-    typeof value.currentPassword !==
-      'string' ||
-    typeof value.newPassword !==
-      'string'
+    typeof value.currentPassword !== 'string' ||
+    typeof value.newPassword !== 'string'
   ) {
     return undefined
   }
 
   return {
-    currentPassword:
-      value.currentPassword,
+    currentPassword: value.currentPassword,
 
-    newPassword:
-      value.newPassword,
+    newPassword: value.newPassword,
   }
 }
 
 function errorResponse(
-  code:
-    ApiErrorResponse['error']['code'],
+  code: ApiErrorResponse['error']['code'],
   message: string,
   status: number,
-  fieldErrors?:
-    NonNullable<
-      ApiErrorResponse['error']['fieldErrors']
-    >,
-  details?: Record<
-    string,
-    unknown
-  >,
+  fieldErrors?: NonNullable<ApiErrorResponse['error']['fieldErrors']>,
+  details?: Record<string, unknown>,
 ): HttpResponse<ApiErrorResponse> {
   return HttpResponse.json(
     {
       error: {
         code,
         message,
-        retryable:
-          false,
+        retryable: false,
 
         fieldErrors,
         details,
@@ -178,206 +112,117 @@ function errorResponse(
 }
 
 function validateProfileRequest(
-  request:
-    UpdateProfileRequest,
+  request: UpdateProfileRequest,
 ): HttpResponse<ApiErrorResponse> | null {
-  const fieldErrors:
-    NonNullable<
-      ApiErrorResponse['error']['fieldErrors']
-    > = []
+  const fieldErrors: NonNullable<ApiErrorResponse['error']['fieldErrors']> = []
 
-  if (
-    !request.displayName
-  ) {
+  if (!request.displayName) {
     fieldErrors.push({
-      field:
-        'displayName',
+      field: 'displayName',
 
-      code:
-        'required',
+      code: 'required',
 
-      message:
-        'Informe o nome de exibição.',
+      message: 'Informe o nome de exibição.',
     })
-  } else if (
-    request.displayName.length >
-    60
-  ) {
+  } else if (request.displayName.length > 60) {
     fieldErrors.push({
-      field:
-        'displayName',
+      field: 'displayName',
 
-      code:
-        'too_long',
+      code: 'too_long',
 
-      message:
-        'Use no máximo 60 caracteres.',
+      message: 'Use no máximo 60 caracteres.',
     })
   }
 
-  if (
-    !request.username
-  ) {
+  if (!request.username) {
     fieldErrors.push({
-      field:
-        'username',
+      field: 'username',
 
-      code:
-        'required',
+      code: 'required',
 
-      message:
-        'Informe o nome de usuário.',
+      message: 'Informe o nome de usuário.',
     })
-  } else if (
-    request.username.length <
-      3 ||
-    request.username.length >
-      24
-  ) {
+  } else if (request.username.length < 3 || request.username.length > 24) {
     fieldErrors.push({
-      field:
-        'username',
+      field: 'username',
 
-      code:
-        'invalid_length',
+      code: 'invalid_length',
 
-      message:
-        'Use entre 3 e 24 caracteres.',
+      message: 'Use entre 3 e 24 caracteres.',
     })
-  } else if (
-    !usernamePattern.test(
-      request.username,
-    )
-  ) {
+  } else if (!usernamePattern.test(request.username)) {
     fieldErrors.push({
-      field:
-        'username',
+      field: 'username',
 
-      code:
-        'invalid_format',
+      code: 'invalid_format',
 
-      message:
-        'Use apenas letras, números e sublinhado.',
+      message: 'Use apenas letras, números e sublinhado.',
     })
   }
 
-  if (
-    !request.email
-  ) {
+  if (!request.email) {
     fieldErrors.push({
-      field:
-        'email',
+      field: 'email',
 
-      code:
-        'required',
+      code: 'required',
 
-      message:
-        'Informe seu e-mail.',
+      message: 'Informe seu e-mail.',
     })
-  } else if (
-    !emailPattern.test(
-      request.email,
-    )
-  ) {
+  } else if (!emailPattern.test(request.email)) {
     fieldErrors.push({
-      field:
-        'email',
+      field: 'email',
 
-      code:
-        'invalid_format',
+      code: 'invalid_format',
 
-      message:
-        'Digite um e-mail válido.',
+      message: 'Digite um e-mail válido.',
     })
   }
 
-  if (
-    request.ensName &&
-    !request.ensName
-      .toLowerCase()
-      .endsWith(
-        '.eth',
-      )
-  ) {
+  if (request.ensName && !request.ensName.toLowerCase().endsWith('.eth')) {
     fieldErrors.push({
-      field:
-        'ensName',
+      field: 'ensName',
 
-      code:
-        'invalid_format',
+      code: 'invalid_format',
 
-      message:
-        'O nome ENS deve terminar em .eth.',
+      message: 'O nome ENS deve terminar em .eth.',
     })
   }
 
-  if (
-    !request.walletNickname
-  ) {
+  if (!request.walletNickname) {
     fieldErrors.push({
-      field:
-        'walletNickname',
+      field: 'walletNickname',
 
-      code:
-        'required',
+      code: 'required',
 
-      message:
-        'Informe o apelido da carteira.',
+      message: 'Informe o apelido da carteira.',
     })
-  } else if (
-    request.walletNickname
-      .length > 40
-  ) {
+  } else if (request.walletNickname.length > 40) {
     fieldErrors.push({
-      field:
-        'walletNickname',
+      field: 'walletNickname',
 
-      code:
-        'too_long',
+      code: 'too_long',
 
-      message:
-        'Use no máximo 40 caracteres.',
+      message: 'Use no máximo 40 caracteres.',
     })
   }
 
-  if (
-    fieldErrors.length ===
-    0
-  ) {
+  if (fieldErrors.length === 0) {
     return null
   }
 
-  return errorResponse(
-    'VALIDATION_ERROR',
-    'Revise os dados do perfil.',
-    422,
-    fieldErrors,
-  )
+  return errorResponse('VALIDATION_ERROR', 'Revise os dados do perfil.', 422, fieldErrors)
 }
 
-function validateNewPassword(
-  newPassword: string,
-): string | null {
-  if (
-    newPassword.length <
-    8
-  ) {
+function validateNewPassword(newPassword: string): string | null {
+  if (newPassword.length < 8) {
     return 'A nova senha deve ter pelo menos 8 caracteres.'
   }
 
   if (
-    !/[a-z]/.test(
-      newPassword,
-    ) ||
-    !/[A-Z]/.test(
-      newPassword,
-    ) ||
-    !/\d/.test(
-      newPassword,
-    ) ||
-    !/[^a-zA-Z0-9]/.test(
-      newPassword,
-    )
+    !/[a-z]/.test(newPassword) ||
+    !/[A-Z]/.test(newPassword) ||
+    !/\d/.test(newPassword) ||
+    !/[^a-zA-Z0-9]/.test(newPassword)
   ) {
     return 'A nova senha deve incluir letra maiúscula, minúscula, número e símbolo.'
   }
@@ -386,237 +231,130 @@ function validateNewPassword(
 }
 
 function findProfile(
-  profilesByUser:
-    Record<
-      string,
-      CollectorProfile
-    >,
+  profilesByUser: Record<string, CollectorProfile>,
   userId: string,
 ): CollectorProfile | undefined {
-  return profilesByUser[
-    userId
-  ]
+  return profilesByUser[userId]
 }
 
 export const profileHandlers = [
   http.get(
     '*/api/profile',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'profile',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('profile')
 
-      if (
-        scenarioResponse
-      ) {
+      if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const authorization =
-        authorizeMockRequest(
-          request,
-        )
+      const authorization = authorizeMockRequest(request)
 
-      if (
-        !authorization.authorized
-      ) {
+      if (!authorization.authorized) {
         return authorization.response
       }
 
-      const profile =
-        findProfile(
-          authorization
-            .state
-            .profilesByUser,
+      const profile = findProfile(
+        authorization.state.profilesByUser,
 
-          authorization
-            .userId,
-        )
+        authorization.userId,
+      )
 
       if (!profile) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Perfil não encontrado.',
-          404,
-        )
+        return errorResponse('NOT_FOUND', 'Perfil não encontrado.', 404)
       }
 
-      return HttpResponse.json(
-        structuredClone(
-          profile,
-        ),
-      )
+      return HttpResponse.json(structuredClone(profile))
     },
   ),
 
   http.patch(
     '*/api/profile',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'profile',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('profile')
 
-      if (
-        scenarioResponse
-      ) {
+      if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const authorization =
-        authorizeMockRequest(
-          request,
-        )
+      const authorization = authorizeMockRequest(request)
 
-      if (
-        !authorization.authorized
-      ) {
+      if (!authorization.authorized) {
         return authorization.response
       }
 
-      const body:
-        unknown =
-        await request
-          .json()
-          .catch(
-            () =>
-              undefined,
-          )
+      const body: unknown = await request.json().catch(() => undefined)
 
-      const payload =
-        parseUpdateProfileRequest(
-          body,
-        )
+      const payload = parseUpdateProfileRequest(body)
 
       if (!payload) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'Os dados do perfil são inválidos.',
-          422,
-        )
+        return errorResponse('VALIDATION_ERROR', 'Os dados do perfil são inválidos.', 422)
       }
 
-      const validationResponse =
-        validateProfileRequest(
-          payload,
-        )
+      const validationResponse = validateProfileRequest(payload)
 
-      if (
-        validationResponse
-      ) {
+      if (validationResponse) {
         return validationResponse
       }
 
-      const state =
-        authorization.state
+      const state = authorization.state
 
-      const profile =
-        findProfile(
-          state.profilesByUser,
-          authorization.userId,
-        )
+      const profile = findProfile(state.profilesByUser, authorization.userId)
 
-      const user =
-        state.users.find(
-          (
-            candidate,
-          ) =>
-            candidate.id ===
-            authorization.userId,
-        )
+      const user = state.users.find((candidate) => candidate.id === authorization.userId)
 
-      if (
-        !profile ||
-        !user
-      ) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Perfil não encontrado.',
-          404,
-        )
+      if (!profile || !user) {
+        return errorResponse('NOT_FOUND', 'Perfil não encontrado.', 404)
       }
 
-      if (
-        payload.expectedVersion !==
-        profile.version
-      ) {
+      if (payload.expectedVersion !== profile.version) {
         return errorResponse(
           'CONFLICT',
           'O perfil foi atualizado por outra operação.',
           409,
           undefined,
           {
-            expectedVersion:
-              payload.expectedVersion,
+            expectedVersion: payload.expectedVersion,
 
-            currentVersion:
-              profile.version,
+            currentVersion: profile.version,
           },
         )
       }
 
-      const conflictingFields:
-        NonNullable<
-          ApiErrorResponse['error']['fieldErrors']
-        > = []
+      const conflictingFields: NonNullable<ApiErrorResponse['error']['fieldErrors']> = []
 
       if (
         state.users.some(
-          (
-            candidate,
-          ) =>
-            candidate.id !==
-              user.id &&
-            candidate.normalizedEmail ===
-              payload.email,
+          (candidate) => candidate.id !== user.id && candidate.normalizedEmail === payload.email,
         )
       ) {
         conflictingFields.push({
-          field:
-            'email',
+          field: 'email',
 
-          code:
-            'email_already_exists',
+          code: 'email_already_exists',
 
-          message:
-            'Este e-mail já está cadastrado.',
+          message: 'Este e-mail já está cadastrado.',
         })
       }
 
       if (
         state.users.some(
-          (
-            candidate,
-          ) =>
-            candidate.id !==
-              user.id &&
-            candidate.username.toLowerCase() ===
-              payload.username.toLowerCase(),
+          (candidate) =>
+            candidate.id !== user.id &&
+            candidate.username.toLowerCase() === payload.username.toLowerCase(),
         )
       ) {
         conflictingFields.push({
-          field:
-            'username',
+          field: 'username',
 
-          code:
-            'username_already_exists',
+          code: 'username_already_exists',
 
-          message:
-            'Este nome de usuário já está em uso.',
+          message: 'Este nome de usuário já está em uso.',
         })
       }
 
-      if (
-        conflictingFields.length >
-        0
-      ) {
+      if (conflictingFields.length > 0) {
         return errorResponse(
           'CONFLICT',
           'Não foi possível atualizar o perfil com esses dados.',
@@ -625,142 +363,78 @@ export const profileHandlers = [
         )
       }
 
-      const updatedAt =
-        new Date().toISOString()
+      const updatedAt = new Date().toISOString()
 
-      profile.displayName =
-        payload.displayName
+      profile.displayName = payload.displayName
 
-      profile.username =
-        payload.username
+      profile.username = payload.username
 
-      profile.email =
-        payload.email
+      profile.email = payload.email
 
-      profile.ensName =
-        payload.ensName
+      profile.ensName = payload.ensName
 
-      profile.walletNickname =
-        payload.walletNickname
+      profile.walletNickname = payload.walletNickname
 
-      profile.version +=
-        1
+      profile.version += 1
 
-      profile.updatedAt =
-        updatedAt
+      profile.updatedAt = updatedAt
 
-      user.displayName =
-        payload.displayName
+      user.displayName = payload.displayName
 
-      user.username =
-        payload.username
+      user.username = payload.username
 
-      user.email =
-        payload.email
+      user.email = payload.email
 
-      user.normalizedEmail =
-        payload.email
+      user.normalizedEmail = payload.email
 
-      const primaryWallet =
-        state.walletsByUser[
-          authorization.userId
-        ]?.find(
-          (
-            wallet,
-          ) =>
-            wallet.primary,
-        )
+      const primaryWallet = state.walletsByUser[authorization.userId]?.find(
+        (wallet) => wallet.primary,
+      )
 
-      if (
-        primaryWallet &&
-        primaryWallet.nickname !==
-          payload.walletNickname
-      ) {
-        primaryWallet.nickname =
-          payload.walletNickname
+      if (primaryWallet && primaryWallet.nickname !== payload.walletNickname) {
+        primaryWallet.nickname = payload.walletNickname
 
-        primaryWallet.version +=
-          1
+        primaryWallet.version += 1
 
-        primaryWallet.updatedAt =
-          updatedAt
+        primaryWallet.updatedAt = updatedAt
       }
 
-      state.revision +=
-        1
+      state.revision += 1
 
-      mockDatabase.write(
-        state,
-      )
+      mockDatabase.write(state)
 
-      return HttpResponse.json(
-        structuredClone(
-          profile,
-        ),
-      )
+      return HttpResponse.json(structuredClone(profile))
     },
   ),
 
   http.patch(
     '*/api/profile/avatar',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'profile',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('profile')
 
-      if (
-        scenarioResponse
-      ) {
+      if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const authorization =
-        authorizeMockRequest(
-          request,
-        )
+      const authorization = authorizeMockRequest(request)
 
-      if (
-        !authorization.authorized
-      ) {
+      if (!authorization.authorized) {
         return authorization.response
       }
 
-      const body:
-        unknown =
-        await request
-          .json()
-          .catch(
-            () =>
-              undefined,
-          )
+      const body: unknown = await request.json().catch(() => undefined)
 
-      const payload =
-        parseUpdateAvatarRequest(
-          body,
-        )
+      const payload = parseUpdateAvatarRequest(body)
 
       if (!payload) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'Os dados do avatar são inválidos.',
-          422,
-        )
+        return errorResponse('VALIDATION_ERROR', 'Os dados do avatar são inválidos.', 422)
       }
 
       if (
-        payload.avatarDataUrl !==
-          null &&
-        (
-          !avatarDataUrlPattern.test(
-            payload.avatarDataUrl,
-          ) ||
-          payload.avatarDataUrl.length >
-            MAX_AVATAR_DATA_URL_LENGTH
-        )
+        payload.avatarDataUrl !== null &&
+        (!avatarDataUrlPattern.test(payload.avatarDataUrl) ||
+          payload.avatarDataUrl.length > MAX_AVATAR_DATA_URL_LENGTH)
       ) {
         return errorResponse(
           'VALIDATION_ERROR',
@@ -768,268 +442,148 @@ export const profileHandlers = [
           422,
           [
             {
-              field:
-                'avatarDataUrl',
+              field: 'avatarDataUrl',
 
-              code:
-                'invalid_avatar',
+              code: 'invalid_avatar',
 
-              message:
-                'Use uma imagem PNG, JPEG ou WebP de até 2 MB.',
+              message: 'Use uma imagem PNG, JPEG ou WebP de até 2 MB.',
             },
           ],
         )
       }
 
-      const state =
-        authorization.state
+      const state = authorization.state
 
-      const profile =
-        findProfile(
-          state.profilesByUser,
-          authorization.userId,
-        )
+      const profile = findProfile(state.profilesByUser, authorization.userId)
 
-      const user =
-        state.users.find(
-          (
-            candidate,
-          ) =>
-            candidate.id ===
-            authorization.userId,
-        )
+      const user = state.users.find((candidate) => candidate.id === authorization.userId)
 
-      if (
-        !profile ||
-        !user
-      ) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Perfil não encontrado.',
-          404,
-        )
+      if (!profile || !user) {
+        return errorResponse('NOT_FOUND', 'Perfil não encontrado.', 404)
       }
 
-      if (
-        payload.expectedVersion !==
-        profile.version
-      ) {
+      if (payload.expectedVersion !== profile.version) {
         return errorResponse(
           'CONFLICT',
           'O perfil foi atualizado por outra operação.',
           409,
           undefined,
           {
-            expectedVersion:
-              payload.expectedVersion,
+            expectedVersion: payload.expectedVersion,
 
-            currentVersion:
-              profile.version,
+            currentVersion: profile.version,
           },
         )
       }
 
-      const updatedAt =
-        new Date().toISOString()
+      const updatedAt = new Date().toISOString()
 
-      profile.avatarUrl =
-        payload.avatarDataUrl
+      profile.avatarUrl = payload.avatarDataUrl
 
-      profile.version +=
-        1
+      profile.version += 1
 
-      profile.updatedAt =
-        updatedAt
+      profile.updatedAt = updatedAt
 
-      user.avatarUrl =
-        payload.avatarDataUrl
+      user.avatarUrl = payload.avatarDataUrl
 
-      state.revision +=
-        1
+      state.revision += 1
 
-      mockDatabase.write(
-        state,
-      )
+      mockDatabase.write(state)
 
-      return HttpResponse.json(
-        structuredClone(
-          profile,
-        ),
-      )
+      return HttpResponse.json(structuredClone(profile))
     },
   ),
 
   http.patch(
     '*/api/profile/password',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'profile',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('profile')
 
-      if (
-        scenarioResponse
-      ) {
+      if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const authorization =
-        authorizeMockRequest(
-          request,
-        )
+      const authorization = authorizeMockRequest(request)
 
-      if (
-        !authorization.authorized
-      ) {
+      if (!authorization.authorized) {
         return authorization.response
       }
 
-      const body:
-        unknown =
-        await request
-          .json()
-          .catch(
-            () =>
-              undefined,
-          )
+      const body: unknown = await request.json().catch(() => undefined)
 
-      const payload =
-        parseChangePasswordRequest(
-          body,
-        )
+      const payload = parseChangePasswordRequest(body)
 
       if (!payload) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'Os dados da senha são inválidos.',
-          422,
-        )
+        return errorResponse('VALIDATION_ERROR', 'Os dados da senha são inválidos.', 422)
       }
 
-      const passwordValidation =
-        validateNewPassword(
-          payload.newPassword,
-        )
+      const passwordValidation = validateNewPassword(payload.newPassword)
 
-      if (
-        passwordValidation
-      ) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          passwordValidation,
-          422,
-          [
-            {
-              field:
-                'newPassword',
+      if (passwordValidation) {
+        return errorResponse('VALIDATION_ERROR', passwordValidation, 422, [
+          {
+            field: 'newPassword',
 
-              code:
-                'invalid_password',
+            code: 'invalid_password',
 
-              message:
-                passwordValidation,
-            },
-          ],
-        )
+            message: passwordValidation,
+          },
+        ])
       }
 
-      if (
-        payload.currentPassword ===
-        payload.newPassword
-      ) {
+      if (payload.currentPassword === payload.newPassword) {
         return errorResponse(
           'VALIDATION_ERROR',
           'A nova senha deve ser diferente da senha atual.',
           422,
           [
             {
-              field:
-                'newPassword',
+              field: 'newPassword',
 
-              code:
-                'same_password',
+              code: 'same_password',
 
-              message:
-                'A nova senha deve ser diferente da senha atual.',
+              message: 'A nova senha deve ser diferente da senha atual.',
             },
           ],
         )
       }
 
-      const state =
-        authorization.state
+      const state = authorization.state
 
-      const user =
-        state.users.find(
-          (
-            candidate,
-          ) =>
-            candidate.id ===
-            authorization.userId,
-        )
+      const user = state.users.find((candidate) => candidate.id === authorization.userId)
 
       if (!user) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Usuário não encontrado.',
-          404,
-        )
+        return errorResponse('NOT_FOUND', 'Usuário não encontrado.', 404)
       }
 
-      const currentPasswordDigest =
-        await hashMockPassword(
-          payload.currentPassword,
-        )
+      const currentPasswordDigest = await hashMockPassword(payload.currentPassword)
 
-      if (
-        currentPasswordDigest !==
-        user.passwordDigest
-      ) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'A senha atual está incorreta.',
-          422,
-          [
-            {
-              field:
-                'currentPassword',
+      if (currentPasswordDigest !== user.passwordDigest) {
+        return errorResponse('VALIDATION_ERROR', 'A senha atual está incorreta.', 422, [
+          {
+            field: 'currentPassword',
 
-              code:
-                'incorrect_password',
+            code: 'incorrect_password',
 
-              message:
-                'A senha atual está incorreta.',
-            },
-          ],
-        )
+            message: 'A senha atual está incorreta.',
+          },
+        ])
       }
 
-      user.passwordDigest =
-        await hashMockPassword(
-          payload.newPassword,
-        )
+      user.passwordDigest = await hashMockPassword(payload.newPassword)
 
-      const changedAt =
-        new Date().toISOString()
+      const changedAt = new Date().toISOString()
 
-      state.revision +=
-        1
+      state.revision += 1
 
-      mockDatabase.write(
-        state,
-      )
+      mockDatabase.write(state)
 
-      const response:
-        ChangePasswordResponse = {
-          changedAt,
-        }
+      const response: ChangePasswordResponse = {
+        changedAt,
+      }
 
-      return HttpResponse.json(
-        response,
-      )
+      return HttpResponse.json(response)
     },
   ),
 ]

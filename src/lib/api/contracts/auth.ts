@@ -28,9 +28,10 @@ export interface RegisterRequest {
   password: string
 }
 
-export interface RegisterResponse {
+export interface RegisterResponse extends SessionResponse {
   user: SessionUser
   createdAt: ISODateString
+  sessionToken: string
 }
 
 export interface LogoutResponse {

@@ -3,15 +3,9 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/icon'
 import { useAuth } from '@/features/auth/session/use-auth'
-import {
-  getCurrentNavigationPath,
-  rememberReturnTo,
-} from '@/lib/auth/navigation-context'
+import { getCurrentNavigationPath, rememberReturnTo } from '@/lib/auth/navigation-context'
 import { cn } from '@/lib/utils'
-import {
-  useFavoritesQuery,
-  useToggleFavoriteMutation,
-} from './favorites-query'
+import { useFavoritesQuery, useToggleFavoriteMutation } from './favorites-query'
 
 interface FavoriteButtonProps {
   nftId: string
@@ -19,11 +13,7 @@ interface FavoriteButtonProps {
   className?: string
 }
 
-export function FavoriteButton({
-  nftId,
-  showLabel = false,
-  className,
-}: FavoriteButtonProps) {
+export function FavoriteButton({ nftId, showLabel = false, className }: FavoriteButtonProps) {
   const auth = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -33,18 +23,13 @@ export function FavoriteButton({
   const favoritesQuery = useFavoritesQuery(userId)
   const mutation = useToggleFavoriteMutation(userId)
 
-  const isFavorite =
-    favoritesQuery.data?.nftIds.includes(nftId) ?? false
+  const isFavorite = favoritesQuery.data?.nftIds.includes(nftId) ?? false
 
-  const label = isFavorite
-    ? 'Remover dos favoritos'
-    : 'Adicionar aos favoritos'
+  const label = isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
 
   function handleClick() {
     if (!userId) {
-      const returnTo =
-        rememberReturnTo(location.href) ??
-        getCurrentNavigationPath()
+      const returnTo = rememberReturnTo(location.href) ?? getCurrentNavigationPath()
 
       void navigate({
         to: '/login',
@@ -79,23 +64,14 @@ export function FavoriteButton({
         )}
         onClick={handleClick}
       >
-        <Icon
-          name={isFavorite ? 'heartBold' : 'heart'}
-          className="size-4"
-        />
+        <Icon name={isFavorite ? 'heartBold' : 'heart'} className="size-4" />
 
-        {showLabel && (
-          isFavorite ? 'Favoritado' : 'Favoritar'
-        )}
+        {showLabel && (isFavorite ? 'Favoritado' : 'Favoritar')}
       </Button>
 
       {mutation.isError && (
-        <span
-          role="alert"
-          className="sr-only"
-        >
-          Não foi possível atualizar o favorito. O estado anterior foi
-          restaurado.
+        <span role="alert" className="sr-only">
+          Não foi possível atualizar o favorito. O estado anterior foi restaurado.
         </span>
       )}
     </>

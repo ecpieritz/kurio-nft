@@ -27,62 +27,38 @@ import type {
 export const profileQueryKeys = {
   all: ['profile'] as const,
 
-  details: () =>
-    [
-      ...profileQueryKeys.all,
-      'details',
-    ] as const,
+  details: () => [...profileQueryKeys.all, 'details'] as const,
 }
 
-function synchronizeSessionUser(
-  queryClient: QueryClient,
-  profile: CollectorProfile,
-): void {
-  queryClient.setQueryData<SessionResponse>(
-    authQueryKeys.session,
-    (current) => {
-      if (!current) {
-        return current
-      }
+function synchronizeSessionUser(queryClient: QueryClient, profile: CollectorProfile): void {
+  queryClient.setQueryData<SessionResponse>(authQueryKeys.session, (current) => {
+    if (!current) {
+      return current
+    }
 
-      return {
-        ...current,
+    return {
+      ...current,
 
-        user: {
-          ...current.user,
+      user: {
+        ...current.user,
 
-          username:
-            profile.username,
+        username: profile.username,
 
-          email:
-            profile.email,
+        email: profile.email,
 
-          displayName:
-            profile.displayName,
+        displayName: profile.displayName,
 
-          avatarUrl:
-            profile.avatarUrl,
-        },
-      }
-    },
-  )
+        avatarUrl: profile.avatarUrl,
+      },
+    }
+  })
 }
 
-export function useProfileQuery(): UseQueryResult<
-  CollectorProfile,
-  Error
-> {
-  return useQuery<
-    CollectorProfile,
-    Error
-  >({
-    queryKey:
-      profileQueryKeys.details(),
+export function useProfileQuery(): UseQueryResult<CollectorProfile, Error> {
+  return useQuery<CollectorProfile, Error>({
+    queryKey: profileQueryKeys.details(),
 
-    queryFn: ({
-      signal,
-    }): Promise<CollectorProfile> =>
-      fetchProfile(signal),
+    queryFn: ({ signal }): Promise<CollectorProfile> => fetchProfile(signal),
 
     staleTime: 30_000,
   })
@@ -93,33 +69,18 @@ export function useUpdateProfileMutation(): UseMutationResult<
   Error,
   UpdateProfileRequest
 > {
-  const queryClient =
-    useQueryClient()
+  const queryClient = useQueryClient()
 
-  return useMutation<
-    CollectorProfile,
-    Error,
-    UpdateProfileRequest
-  >({
-    mutationFn:
-      updateProfile,
+  return useMutation<CollectorProfile, Error, UpdateProfileRequest>({
+    mutationFn: updateProfile,
 
-    onSuccess: (
-      profile,
-    ) => {
-      queryClient.setQueryData<CollectorProfile>(
-        profileQueryKeys.details(),
-        profile,
-      )
+    onSuccess: (profile) => {
+      queryClient.setQueryData<CollectorProfile>(profileQueryKeys.details(), profile)
 
-      synchronizeSessionUser(
-        queryClient,
-        profile,
-      )
+      synchronizeSessionUser(queryClient, profile)
 
       void queryClient.invalidateQueries({
-        queryKey:
-          walletQueryKeys.all,
+        queryKey: walletQueryKeys.all,
       })
     },
   })
@@ -130,29 +91,15 @@ export function useUpdateAvatarMutation(): UseMutationResult<
   Error,
   UpdateAvatarRequest
 > {
-  const queryClient =
-    useQueryClient()
+  const queryClient = useQueryClient()
 
-  return useMutation<
-    CollectorProfile,
-    Error,
-    UpdateAvatarRequest
-  >({
-    mutationFn:
-      updateAvatar,
+  return useMutation<CollectorProfile, Error, UpdateAvatarRequest>({
+    mutationFn: updateAvatar,
 
-    onSuccess: (
-      profile,
-    ) => {
-      queryClient.setQueryData<CollectorProfile>(
-        profileQueryKeys.details(),
-        profile,
-      )
+    onSuccess: (profile) => {
+      queryClient.setQueryData<CollectorProfile>(profileQueryKeys.details(), profile)
 
-      synchronizeSessionUser(
-        queryClient,
-        profile,
-      )
+      synchronizeSessionUser(queryClient, profile)
     },
   })
 }
@@ -162,12 +109,7 @@ export function useChangePasswordMutation(): UseMutationResult<
   Error,
   ChangePasswordRequest
 > {
-  return useMutation<
-    ChangePasswordResponse,
-    Error,
-    ChangePasswordRequest
-  >({
-    mutationFn:
-      changePassword,
+  return useMutation<ChangePasswordResponse, Error, ChangePasswordRequest>({
+    mutationFn: changePassword,
   })
 }

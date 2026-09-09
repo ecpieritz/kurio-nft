@@ -15,8 +15,7 @@ import type {
   WalletAddress,
 } from '@/lib/api/contracts'
 
-export interface MockUserRecord
-  extends SessionUser {
+export interface MockUserRecord extends SessionUser {
   normalizedEmail: string
   passwordDigest: string
   createdAt: ISODateString
@@ -63,27 +62,17 @@ export interface MockDatabaseState {
   sessions: MockSessionRecord[]
   nfts: NftDetails[]
 
-  favoritesByUser: Record<
-    EntityId,
-    FavoriteCollection
-  >
+  favoritesByUser: Record<EntityId, FavoriteCollection>
 
   carts: Cart[]
   quotes: QuoteResponse[]
   orders: Order[]
 
-  profilesByUser: Record<
-    EntityId,
-    CollectorProfile
-  >
+  profilesByUser: Record<EntityId, CollectorProfile>
 
-  walletsByUser: Record<
-    EntityId,
-    CollectorWallet[]
-  >
+  walletsByUser: Record<EntityId, CollectorWallet[]>
 
   coupons: MockCouponRecord[]
 
-  idempotencyRecords:
-    MockIdempotencyRecord[]
+  idempotencyRecords: MockIdempotencyRecord[]
 }

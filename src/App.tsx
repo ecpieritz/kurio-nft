@@ -1,7 +1,4 @@
-import {
-  useEffect,
-  useRef,
-} from 'react'
+import { useEffect, useRef } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 
@@ -20,85 +17,49 @@ import { router } from '@/router'
 import { paths } from '@/router/paths'
 
 function RoutedApplication() {
-  const auth =
-    useAuth()
+  const auth = useAuth()
 
-  const handledExpiration =
-    useRef<number | null>(
-      null,
-    )
+  const handledExpiration = useRef<number | null>(null)
 
-  const handledLogin =
-    useRef<number | null>(
-      null,
-    )
+  const handledLogin = useRef<number | null>(null)
 
   useEffect(() => {
-    if (
-      !auth.sessionExpiredAt ||
-      handledExpiration.current ===
-        auth.sessionExpiredAt
-    ) {
+    if (!auth.sessionExpiredAt || handledExpiration.current === auth.sessionExpiredAt) {
       return
     }
 
-    handledExpiration.current =
-      auth.sessionExpiredAt
+    handledExpiration.current = auth.sessionExpiredAt
 
     const returnTo =
-      rememberReturnTo(
-        getCurrentNavigationPath(),
-      ) ??
-      getRememberedReturnTo() ??
-      paths.home
+      rememberReturnTo(getCurrentNavigationPath()) ?? getRememberedReturnTo() ?? paths.home
 
     void router.navigate({
       to: paths.login,
 
       search: {
-        redirect:
-          returnTo,
+        redirect: returnTo,
 
-        reason:
-          'session-expired',
+        reason: 'session-expired',
       },
 
       replace: true,
     })
-  }, [
-    auth.sessionExpiredAt,
-  ])
+  }, [auth.sessionExpiredAt])
 
   useEffect(() => {
-    if (
-      !auth.loginCompletedAt ||
-      handledLogin.current ===
-        auth.loginCompletedAt
-    ) {
+    if (!auth.loginCompletedAt || handledLogin.current === auth.loginCompletedAt) {
       return
     }
 
-    handledLogin.current =
-      auth.loginCompletedAt
+    handledLogin.current = auth.loginCompletedAt
 
-    router.history.replace(
-      consumeReturnTo(
-        paths.home,
-      ),
-    )
-  }, [
-    auth.loginCompletedAt,
-  ])
+    router.history.replace(consumeReturnTo(paths.home))
+  }, [auth.loginCompletedAt])
 
-  if (
-    auth.status ===
-    'pending'
-  ) {
+  if (auth.status === 'pending') {
     return (
       <SessionGate
-        error={
-          auth.sessionError
-        }
+        error={auth.sessionError}
         onRetry={() => {
           void auth.retrySession()
         }}
@@ -111,12 +72,9 @@ function RoutedApplication() {
       router={router}
       context={{
         auth: {
-          status:
-            auth.status,
+          status: auth.status,
 
-          userId:
-            auth.user?.id ??
-            null,
+          userId: auth.user?.id ?? null,
         },
       }}
     />
@@ -125,9 +83,7 @@ function RoutedApplication() {
 
 export function App() {
   return (
-    <QueryClientProvider
-      client={queryClient}
-    >
+    <QueryClientProvider client={queryClient}>
       <RealtimeProvider>
         <AuthProvider>
           <RoutedApplication />

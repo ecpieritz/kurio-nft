@@ -3,326 +3,206 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   redirect,
 } from '@tanstack/react-router'
 
 import { AppShell } from '@/components/layout/app-shell'
-import { SignUpPage } from '@/features/auth/registration/sign-up-page'
-import { LoginPage } from '@/features/auth/session/login-page'
-import { CartPage } from '@/features/cart/cart-page'
-import { CatalogPage } from '@/features/catalog/catalog-page'
 import { validateCatalogSearch } from '@/features/catalog/catalog-search'
-import { CheckoutPage } from '@/features/checkout/checkout-page'
-import { FavoritesPage } from '@/features/favorites/favorites-page'
-import { HomePage } from '@/features/home/home-page'
-import { NftDetailsPage } from '@/features/nft/nft-details-page'
-import { OrderPage } from '@/features/orders/order-page'
-import { ProfilePage } from '@/features/profile/profile-page'
-import { WalletsPage } from '@/features/wallets/wallets-page'
-import {
-  rememberReturnTo,
-  sanitizeReturnTo,
-} from '@/lib/auth/navigation-context'
+import { rememberReturnTo, sanitizeReturnTo } from '@/lib/auth/navigation-context'
 import type { RouterContext } from '@/router/context'
 import { anonymousAuthContext } from '@/router/context'
 import { paths } from '@/router/paths'
-import {
-  NotFoundRoute,
-  RouteError,
-} from '@/router/route-components'
+import { NotFoundRoute, RouteError } from '@/router/route-components'
 
 interface LoginSearch {
   redirect?: string
   reason?: 'session-expired'
 }
 
-function validateLoginSearch(
-  search:
-    Record<
-      string,
-      unknown
-    >,
-): LoginSearch {
+function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
   return {
-    redirect:
-      sanitizeReturnTo(
-        search.redirect,
-      ) ?? undefined,
+    redirect: sanitizeReturnTo(search.redirect) ?? undefined,
 
-    reason:
-      search.reason ===
-      'session-expired'
-        ? 'session-expired'
-        : undefined,
+    reason: search.reason === 'session-expired' ? 'session-expired' : undefined,
   }
 }
 
-const rootRoute =
-  createRootRouteWithContext<RouterContext>()(
-    {
-      component:
-        AppShell,
+const rootRoute = createRootRouteWithContext<RouterContext>()({
+  component: AppShell,
 
-      errorComponent:
-        RouteError,
+  errorComponent: RouteError,
 
-      notFoundComponent:
-        NotFoundRoute,
-    },
-  )
+  notFoundComponent: NotFoundRoute,
+})
 
-const publicRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        rootRoute,
+const publicRoute = createRoute({
+  getParentRoute: () => rootRoute,
 
-    id:
-      '_public',
+  id: '_public',
 
-    component:
-      Outlet,
-  })
+  component: Outlet,
+})
 
-const protectedRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        rootRoute,
+const protectedRoute = createRoute({
+  getParentRoute: () => rootRoute,
 
-    id:
-      '_authenticated',
+  id: '_authenticated',
 
-    beforeLoad: ({
-      context,
-      location,
-    }) => {
-      if (
-        context.auth.status !==
-        'authenticated'
-      ) {
-        const returnTo =
-          rememberReturnTo(
-            location.href,
-          ) ??
-          paths.home
+  beforeLoad: ({ context, location }) => {
+    if (context.auth.status !== 'authenticated') {
+      const returnTo = rememberReturnTo(location.href) ?? paths.home
 
-        // TanStack Router models redirects as throwable control-flow objects.
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw redirect({
-          to:
-            paths.login,
+      // TanStack Router models redirects as throwable control-flow objects.
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw redirect({
+        to: paths.login,
 
-          search: {
-            redirect:
-              returnTo,
-          },
+        search: {
+          redirect: returnTo,
+        },
 
-          replace:
-            true,
-        })
-      }
-    },
+        replace: true,
+      })
+    }
+  },
 
-    component:
-      Outlet,
-  })
+  component: Outlet,
+})
 
-const homeRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        publicRoute,
+const homeRoute = createRoute({
+  getParentRoute: () => publicRoute,
 
-    path:
-      paths.home,
+  path: paths.home,
 
-    component:
-      HomePage,
-  })
+  component: lazyRouteComponent(() => import('@/features/home/home-page'), 'HomePage'),
+})
 
-const marketplaceRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        publicRoute,
+const marketplaceRoute = createRoute({
+  getParentRoute: () => publicRoute,
 
-    path:
-      paths.marketplace,
+  path: paths.marketplace,
 
-    validateSearch:
-      validateCatalogSearch,
+  validateSearch: validateCatalogSearch,
 
-    component:
-      CatalogPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/catalog/catalog-page'), 'CatalogPage'),
+})
 
-const nftDetailsRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        publicRoute,
+const nftDetailsRoute = createRoute({
+  getParentRoute: () => publicRoute,
 
-    path:
-      paths.nftDetails,
+  path: paths.nftDetails,
 
-    component:
-      NftDetailsPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/nft/nft-details-page'), 'NftDetailsPage'),
+})
 
-const cartRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        publicRoute,
+const cartRoute = createRoute({
+  getParentRoute: () => publicRoute,
 
-    path:
-      paths.cart,
+  path: paths.cart,
 
-    component:
-      CartPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/cart/cart-page'), 'CartPage'),
+})
 
-const loginRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        publicRoute,
+const loginRoute = createRoute({
+  getParentRoute: () => publicRoute,
 
-    path:
-      paths.login,
+  path: paths.login,
 
-    validateSearch:
-      validateLoginSearch,
+  validateSearch: validateLoginSearch,
 
-    component:
-      LoginPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/auth/session/login-page'), 'LoginPage'),
+})
 
-const signUpRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        publicRoute,
+const signUpRoute = createRoute({
+  getParentRoute: () => publicRoute,
 
-    path:
-      paths.signUp,
+  path: paths.signUp,
 
-    component:
-      SignUpPage,
-  })
+  component: lazyRouteComponent(
+    () => import('@/features/auth/registration/sign-up-page'),
+    'SignUpPage',
+  ),
+})
 
-const checkoutRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        protectedRoute,
+const checkoutRoute = createRoute({
+  getParentRoute: () => protectedRoute,
 
-    path:
-      paths.checkout,
+  path: paths.checkout,
 
-    component:
-      CheckoutPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/checkout/checkout-page'), 'CheckoutPage'),
+})
 
-const orderRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        protectedRoute,
+const orderRoute = createRoute({
+  getParentRoute: () => protectedRoute,
 
-    path:
-      paths.order,
+  path: paths.order,
 
-    component:
-      OrderPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/orders/order-page'), 'OrderPage'),
+})
 
-const favoritesRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        protectedRoute,
+const favoritesRoute = createRoute({
+  getParentRoute: () => protectedRoute,
 
-    path:
-      paths.favorites,
+  path: paths.favorites,
 
-    component:
-      FavoritesPage,
-  })
+  component: lazyRouteComponent(
+    () => import('@/features/favorites/favorites-page'),
+    'FavoritesPage',
+  ),
+})
 
-const profileRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        protectedRoute,
+const profileRoute = createRoute({
+  getParentRoute: () => protectedRoute,
 
-    path:
-      paths.profile,
+  path: paths.profile,
 
-    component:
-      ProfilePage,
-  })
+  component: lazyRouteComponent(() => import('@/features/profile/profile-page'), 'ProfilePage'),
+})
 
-const walletsRoute =
-  createRoute({
-    getParentRoute:
-      () =>
-        protectedRoute,
+const walletsRoute = createRoute({
+  getParentRoute: () => protectedRoute,
 
-    path:
-      paths.wallets,
+  path: paths.wallets,
 
-    component:
-      WalletsPage,
-  })
+  component: lazyRouteComponent(() => import('@/features/wallets/wallets-page'), 'WalletsPage'),
+})
 
-const routeTree =
-  rootRoute.addChildren([
-    publicRoute.addChildren(
-      [
-        homeRoute,
-        marketplaceRoute,
-        nftDetailsRoute,
-        cartRoute,
-        loginRoute,
-        signUpRoute,
-      ],
-    ),
+const routeTree = rootRoute.addChildren([
+  publicRoute.addChildren([
+    homeRoute,
+    marketplaceRoute,
+    nftDetailsRoute,
+    cartRoute,
+    loginRoute,
+    signUpRoute,
+  ]),
 
-    protectedRoute.addChildren(
-      [
-        checkoutRoute,
-        orderRoute,
-        favoritesRoute,
-        profileRoute,
-        walletsRoute,
-      ],
-    ),
-  ])
+  protectedRoute.addChildren([
+    checkoutRoute,
+    orderRoute,
+    favoritesRoute,
+    profileRoute,
+    walletsRoute,
+  ]),
+])
 
-export const router =
-  createRouter({
-    routeTree,
+export const router = createRouter({
+  routeTree,
 
-    context: {
-      auth:
-        anonymousAuthContext,
-    },
+  context: {
+    auth: anonymousAuthContext,
+  },
 
-    defaultPreload:
-      'intent',
+  defaultPreload: 'intent',
 
-    defaultPreloadStaleTime:
-      0,
+  defaultPreloadStaleTime: 0,
 
-    scrollRestoration:
-      true,
-  })
+  scrollRestoration: true,
+})
 
 declare module '@tanstack/react-router' {
   interface Register {
-    router:
-      typeof router
+    router: typeof router
   }
 }

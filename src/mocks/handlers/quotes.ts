@@ -1,7 +1,4 @@
-import {
-  http,
-  HttpResponse,
-} from 'msw'
+import { http, HttpResponse } from 'msw'
 
 import type {
   ApiErrorResponse,
@@ -12,175 +9,95 @@ import type {
   QuoteRequest,
   QuoteResponse,
 } from '@/lib/api/contracts'
-import {
-  addEth,
-  multiplyEth,
-  percentageOfEth,
-  subtractEth,
-  sumEth,
-} from '@/lib/eth/amount'
+import { addEth, multiplyEth, percentageOfEth, subtractEth, sumEth } from '@/lib/eth/amount'
 import { authorizeMockRequest } from '@/mocks/auth/authorize-request'
 import { mockDatabase } from '@/mocks/database/database'
-import type {
-  MockCouponRecord,
-  MockDatabaseState,
-} from '@/mocks/database/types'
+import type { MockCouponRecord, MockDatabaseState } from '@/mocks/database/types'
 import { applyNetworkScenario } from '@/mocks/scenarios/network'
 import { getActiveScenario } from '@/mocks/scenarios/runtime'
 
-const VISITOR_HEADER =
-  'X-Kurio-Visitor-Id'
+const VISITOR_HEADER = 'X-Kurio-Visitor-Id'
 
-const QUOTE_DURATION_MS =
-  5 * 60_000
+const QUOTE_DURATION_MS = 5 * 60_000
 
-const networkFees: Record<
-  BlockchainNetwork,
-  DecimalString
-> = {
+const networkFees: Record<BlockchainNetwork, DecimalString> = {
   ethereum: '0.016',
   polygon: '0.004',
   solana: '0.001',
 }
 
-function isRecord(
-  value: unknown,
-): value is Record<
-  string,
-  unknown
-> {
-  return (
-    typeof value ===
-      'object' &&
-    value !== null
-  )
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
-function isNetwork(
-  value: unknown,
-): value is BlockchainNetwork {
-  return (
-    value === 'ethereum' ||
-    value === 'polygon' ||
-    value === 'solana'
-  )
+function isNetwork(value: unknown): value is BlockchainNetwork {
+  return value === 'ethereum' || value === 'polygon' || value === 'solana'
 }
 
-function parseQuoteItem(
-  value: unknown,
-): QuoteItemRequest | undefined {
+function parseQuoteItem(value: unknown): QuoteItemRequest | undefined {
   if (
     !isRecord(value) ||
-    typeof value.cartItemId !==
-      'string' ||
-    typeof value.quantity !==
-      'number' ||
-    !Number.isInteger(
-      value.quantity,
-    ) ||
+    typeof value.cartItemId !== 'string' ||
+    typeof value.quantity !== 'number' ||
+    !Number.isInteger(value.quantity) ||
     value.quantity < 1 ||
-    typeof value.expectedNftVersion !==
-      'number' ||
-    !Number.isInteger(
-      value.expectedNftVersion,
-    ) ||
+    typeof value.expectedNftVersion !== 'number' ||
+    !Number.isInteger(value.expectedNftVersion) ||
     value.expectedNftVersion < 1
   ) {
     return undefined
   }
 
   return {
-    cartItemId:
-      value.cartItemId,
+    cartItemId: value.cartItemId,
 
-    quantity:
-      value.quantity,
+    quantity: value.quantity,
 
-    expectedNftVersion:
-      value.expectedNftVersion,
+    expectedNftVersion: value.expectedNftVersion,
   }
 }
 
-function parseQuoteRequest(
-  value: unknown,
-): QuoteRequest | undefined {
+function parseQuoteRequest(value: unknown): QuoteRequest | undefined {
   if (
     !isRecord(value) ||
-    typeof value.cartId !==
-      'string' ||
-    typeof value.expectedCartVersion !==
-      'number' ||
-    !Number.isInteger(
-      value.expectedCartVersion,
-    ) ||
+    typeof value.cartId !== 'string' ||
+    typeof value.expectedCartVersion !== 'number' ||
+    !Number.isInteger(value.expectedCartVersion) ||
     value.expectedCartVersion < 1 ||
-    !isNetwork(
-      value.network,
-    ) ||
-    !Array.isArray(
-      value.items,
-    )
+    !isNetwork(value.network) ||
+    !Array.isArray(value.items)
   ) {
     return undefined
   }
 
-  const items =
-    value.items.map(
-      parseQuoteItem,
-    )
+  const items = value.items.map(parseQuoteItem)
 
-  if (
-    items.some(
-      (
-        item,
-      ) =>
-        item === undefined,
-    )
-  ) {
+  if (items.some((item) => item === undefined)) {
     return undefined
   }
 
-  if (
-    value.couponCode !==
-      undefined &&
-    typeof value.couponCode !==
-      'string'
-  ) {
+  if (value.couponCode !== undefined && typeof value.couponCode !== 'string') {
     return undefined
   }
 
   return {
-    cartId:
-      value.cartId,
+    cartId: value.cartId,
 
-    expectedCartVersion:
-      value.expectedCartVersion,
+    expectedCartVersion: value.expectedCartVersion,
 
-    network:
-      value.network,
+    network: value.network,
 
-    couponCode:
-      value.couponCode,
+    couponCode: value.couponCode,
 
-    items:
-      items.filter(
-        (
-          item,
-        ): item is QuoteItemRequest =>
-          item !== undefined,
-      ),
+    items: items.filter((item): item is QuoteItemRequest => item !== undefined),
   }
 }
 
 function errorResponse(
-  code:
-    ApiErrorResponse['error']['code'],
+  code: ApiErrorResponse['error']['code'],
   message: string,
   status: number,
-  details?: Record<
-    string,
-    unknown
-  >,
+  details?: Record<string, unknown>,
 ): HttpResponse<ApiErrorResponse> {
   return HttpResponse.json(
     {
@@ -197,17 +114,8 @@ function errorResponse(
   )
 }
 
-function getVisitorId(
-  request: Request,
-): string | null {
-  return (
-    request.headers
-      .get(
-        VISITOR_HEADER,
-      )
-      ?.trim() ||
-    null
-  )
+function getVisitorId(request: Request): string | null {
+  return request.headers.get(VISITOR_HEADER)?.trim() || null
 }
 
 function canAccessCart(
@@ -223,61 +131,31 @@ function canAccessCart(
       authorized: false
       response: HttpResponse<ApiErrorResponse>
     } {
-  const cart =
-    state.carts.find(
-      (
-        candidate,
-      ) =>
-        candidate.id ===
-        cartId,
-    )
+  const cart = state.carts.find((candidate) => candidate.id === cartId)
 
   if (!cart) {
     return {
       authorized: false,
 
-      response:
-        errorResponse(
-          'NOT_FOUND',
-          'Carrinho não encontrado.',
-          404,
-        ),
+      response: errorResponse('NOT_FOUND', 'Carrinho não encontrado.', 404),
     }
   }
 
-  if (
-    request.headers.has(
-      'Authorization',
-    )
-  ) {
-    const authorization =
-      authorizeMockRequest(
-        request,
-      )
+  if (request.headers.has('Authorization')) {
+    const authorization = authorizeMockRequest(request)
 
-    if (
-      !authorization.authorized
-    ) {
+    if (!authorization.authorized) {
       return {
         authorized: false,
-        response:
-          authorization.response,
+        response: authorization.response,
       }
     }
 
-    if (
-      cart.userId !==
-      authorization.userId
-    ) {
+    if (cart.userId !== authorization.userId) {
       return {
         authorized: false,
 
-        response:
-          errorResponse(
-            'FORBIDDEN',
-            'Este carrinho pertence a outro colecionador.',
-            403,
-          ),
+        response: errorResponse('FORBIDDEN', 'Este carrinho pertence a outro colecionador.', 403),
       }
     }
 
@@ -287,26 +165,13 @@ function canAccessCart(
     }
   }
 
-  const visitorId =
-    getVisitorId(
-      request,
-    )
+  const visitorId = getVisitorId(request)
 
-  if (
-    !visitorId ||
-    cart.userId !== null ||
-    cart.visitorId !==
-      visitorId
-  ) {
+  if (!visitorId || cart.userId !== null || cart.visitorId !== visitorId) {
     return {
       authorized: false,
 
-      response:
-        errorResponse(
-          'FORBIDDEN',
-          'Este carrinho não pertence ao visitante atual.',
-          403,
-        ),
+      response: errorResponse('FORBIDDEN', 'Este carrinho não pertence ao visitante atual.', 403),
     }
   }
 
@@ -316,29 +181,15 @@ function canAccessCart(
   }
 }
 
-function findCoupon(
-  state: MockDatabaseState,
-  couponCode: string,
-): MockCouponRecord | undefined {
-  const normalizedCode =
-    couponCode
-      .trim()
-      .toUpperCase()
+function findCoupon(state: MockDatabaseState, couponCode: string): MockCouponRecord | undefined {
+  const normalizedCode = couponCode.trim().toUpperCase()
 
-  return state.coupons.find(
-    (
-      coupon,
-    ) =>
-      coupon.code.toUpperCase() ===
-      normalizedCode,
-  )
+  return state.coupons.find((coupon) => coupon.code.toUpperCase() === normalizedCode)
 }
 
 function getCouponResult(
   state: MockDatabaseState,
-  couponCode:
-    | string
-    | undefined,
+  couponCode: string | undefined,
 ):
   | {
       code: null
@@ -347,91 +198,59 @@ function getCouponResult(
     }
   | {
       code: string
-      status:
-        | 'applied'
-        | 'invalid'
-        | 'expired'
+      status: 'applied' | 'invalid' | 'expired'
       discountPercent: number
     } {
-  const normalizedCode =
-    couponCode
-      ?.trim()
-      .toUpperCase()
+  const normalizedCode = couponCode?.trim().toUpperCase()
 
   if (!normalizedCode) {
     return {
       code: null,
-      status:
-        'not-applied',
+      status: 'not-applied',
       discountPercent: 0,
     }
   }
 
-  const scenario =
-    getActiveScenario()
+  const scenario = getActiveScenario()
 
-  if (
-    scenario.flags
-      .invalidCoupon
-  ) {
+  if (scenario.flags.invalidCoupon) {
     return {
-      code:
-        normalizedCode,
+      code: normalizedCode,
       status: 'invalid',
       discountPercent: 0,
     }
   }
 
-  const coupon =
-    findCoupon(
-      state,
-      normalizedCode,
-    )
+  const coupon = findCoupon(state, normalizedCode)
 
-  if (
-    !coupon ||
-    !coupon.enabled
-  ) {
+  if (!coupon || !coupon.enabled) {
     return {
-      code:
-        normalizedCode,
+      code: normalizedCode,
       status: 'invalid',
       discountPercent: 0,
     }
   }
 
-  if (
-    scenario.flags
-      .expiredCoupon ||
-    new Date(
-      coupon.expiresAt,
-    ).getTime() <=
-      Date.now()
-  ) {
+  if (scenario.flags.expiredCoupon || new Date(coupon.expiresAt).getTime() <= Date.now()) {
     return {
-      code:
-        normalizedCode,
+      code: normalizedCode,
       status: 'expired',
       discountPercent: 0,
     }
   }
 
   return {
-    code:
-      normalizedCode,
+    code: normalizedCode,
 
-    status:
-      'applied',
+    status: 'applied',
 
-    discountPercent:
-      coupon.discountPercent,
+    discountPercent: coupon.discountPercent,
   }
 }
 
 function createQuoteItems(
   state: MockDatabaseState,
-  cart:
-    MockDatabaseState['carts'][number],
+  cart: MockDatabaseState['carts'][number],
   request: QuoteRequest,
 ):
   | {
@@ -442,197 +261,115 @@ function createQuoteItems(
       ok: false
       response: HttpResponse<ApiErrorResponse>
     } {
-  if (
-    request.items.length !==
-    cart.items.length
-  ) {
+  if (request.items.length !== cart.items.length) {
     return {
       ok: false,
 
-      response:
-        errorResponse(
-          'CONFLICT',
-          'O conteúdo do carrinho mudou. Gere uma nova cotação.',
-          409,
-        ),
+      response: errorResponse(
+        'CONFLICT',
+        'O conteúdo do carrinho mudou. Gere uma nova cotação.',
+        409,
+      ),
     }
   }
 
-  const items:
-    QuoteItem[] = []
+  const items: QuoteItem[] = []
 
-  for (
-    const requestedItem
-    of request.items
-  ) {
-    const cartItem =
-      cart.items.find(
-        (
-          item,
-        ) =>
-          item.id ===
-          requestedItem.cartItemId,
-      )
+  for (const requestedItem of request.items) {
+    const cartItem = cart.items.find((item) => item.id === requestedItem.cartItemId)
 
     if (!cartItem) {
       return {
         ok: false,
 
-        response:
-          errorResponse(
-            'CONFLICT',
-            'Um item não existe mais no carrinho.',
-            409,
-            {
-              cartItemId:
-                requestedItem.cartItemId,
-            },
-          ),
+        response: errorResponse('CONFLICT', 'Um item não existe mais no carrinho.', 409, {
+          cartItemId: requestedItem.cartItemId,
+        }),
       }
     }
 
-    if (
-      cartItem.quantity !==
-      requestedItem.quantity
-    ) {
+    if (cartItem.quantity !== requestedItem.quantity) {
       return {
         ok: false,
 
-        response:
-          errorResponse(
-            'CONFLICT',
-            'A quantidade de um item do carrinho mudou.',
-            409,
-            {
-              cartItemId:
-                cartItem.id,
+        response: errorResponse('CONFLICT', 'A quantidade de um item do carrinho mudou.', 409, {
+          cartItemId: cartItem.id,
 
-              cartQuantity:
-                cartItem.quantity,
+          cartQuantity: cartItem.quantity,
 
-              requestedQuantity:
-                requestedItem.quantity,
-            },
-          ),
+          requestedQuantity: requestedItem.quantity,
+        }),
       }
     }
 
-    const nft =
-      state.nfts.find(
-        (
-          candidate,
-        ) =>
-          candidate.id ===
-          cartItem.nftId,
-      )
+    const nft = state.nfts.find((candidate) => candidate.id === cartItem.nftId)
 
     if (!nft) {
       return {
         ok: false,
 
-        response:
-          errorResponse(
-            'NOT_FOUND',
-            'Um NFT do carrinho não está mais disponível.',
-            404,
-          ),
+        response: errorResponse('NOT_FOUND', 'Um NFT do carrinho não está mais disponível.', 404),
       }
     }
 
-    if (
-      nft.version !==
-      requestedItem.expectedNftVersion
-    ) {
+    if (nft.version !== requestedItem.expectedNftVersion) {
       return {
         ok: false,
 
-        response:
-          errorResponse(
-            'AVAILABILITY_CONFLICT',
-            'O NFT foi atualizado desde a última consulta.',
-            409,
-            {
-              nftId:
-                nft.id,
+        response: errorResponse(
+          'AVAILABILITY_CONFLICT',
+          'O NFT foi atualizado desde a última consulta.',
+          409,
+          {
+            nftId: nft.id,
 
-              expectedVersion:
-                requestedItem.expectedNftVersion,
+            expectedVersion: requestedItem.expectedNftVersion,
 
-              currentVersion:
-                nft.version,
-            },
-          ),
+            currentVersion: nft.version,
+          },
+        ),
       }
     }
 
-    const edition =
-      nft.editions.find(
-        (
-          candidate,
-        ) =>
-          candidate.id ===
-          cartItem.editionId,
-      )
+    const edition = nft.editions.find((candidate) => candidate.id === cartItem.editionId)
 
-    if (
-      !edition ||
-      !edition.purchasable ||
-      requestedItem.quantity >
-        edition.availableQuantity
-    ) {
+    if (!edition || !edition.purchasable || requestedItem.quantity > edition.availableQuantity) {
       return {
         ok: false,
 
-        response:
-          errorResponse(
-            'AVAILABILITY_CONFLICT',
-            'A quantidade solicitada não está mais disponível.',
-            409,
-            {
-              nftId:
-                nft.id,
+        response: errorResponse(
+          'AVAILABILITY_CONFLICT',
+          'A quantidade solicitada não está mais disponível.',
+          409,
+          {
+            nftId: nft.id,
 
-              editionId:
-                cartItem.editionId,
+            editionId: cartItem.editionId,
 
-              requestedQuantity:
-                requestedItem.quantity,
+            requestedQuantity: requestedItem.quantity,
 
-              availableQuantity:
-                edition
-                  ?.availableQuantity ??
-                0,
-            },
-          ),
+            availableQuantity: edition?.availableQuantity ?? 0,
+          },
+        ),
       }
     }
 
-    const subtotalEth =
-      multiplyEth(
-        nft.priceEth,
-        requestedItem.quantity,
-      )
+    const subtotalEth = multiplyEth(nft.priceEth, requestedItem.quantity)
 
     items.push({
-      cartItemId:
-        cartItem.id,
+      cartItemId: cartItem.id,
 
-      nftId:
-        nft.id,
+      nftId: nft.id,
 
-      editionId:
-        cartItem.editionId,
+      editionId: cartItem.editionId,
 
-      quantity:
-        requestedItem.quantity,
+      quantity: requestedItem.quantity,
 
-      unitPriceEth:
-        nft.priceEth,
+      unitPriceEth: nft.priceEth,
 
       subtotalEth,
 
-      nftVersion:
-        nft.version,
+      nftVersion: nft.version,
     })
   }
 
@@ -646,260 +383,131 @@ export const quoteHandlers = [
   http.post(
     '*/api/quotes',
 
-    async ({
-      request,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'quote',
-        )
+    async ({ request }) => {
+      const scenarioResponse = await applyNetworkScenario('quote')
 
       if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const requestBody: unknown =
-        await request
-          .json()
-          .catch(
-            () =>
-              undefined,
-          )
+      const requestBody: unknown = await request.json().catch(() => undefined)
 
-      const payload =
-        parseQuoteRequest(
-          requestBody,
-        )
+      const payload = parseQuoteRequest(requestBody)
 
       if (!payload) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'Os dados da cotação são inválidos.',
-          422,
-        )
+        return errorResponse('VALIDATION_ERROR', 'Os dados da cotação são inválidos.', 422)
       }
 
-      const state =
-        mockDatabase.read()
+      const state = mockDatabase.read()
 
-      const cartAccess =
-        canAccessCart(
-          request,
-          state,
-          payload.cartId,
-        )
+      const cartAccess = canAccessCart(request, state, payload.cartId)
 
-      if (
-        !cartAccess.authorized
-      ) {
+      if (!cartAccess.authorized) {
         return cartAccess.response
       }
 
-      const cart =
-        cartAccess.cart
+      const cart = cartAccess.cart
 
-      if (
-        cart.version !==
-        payload.expectedCartVersion
-      ) {
-        return errorResponse(
-          'CONFLICT',
-          'O carrinho mudou. Gere uma nova cotação.',
-          409,
-          {
-            expectedVersion:
-              payload.expectedCartVersion,
+      if (cart.version !== payload.expectedCartVersion) {
+        return errorResponse('CONFLICT', 'O carrinho mudou. Gere uma nova cotação.', 409, {
+          expectedVersion: payload.expectedCartVersion,
 
-            currentVersion:
-              cart.version,
-          },
-        )
+          currentVersion: cart.version,
+        })
       }
 
-      const quoteItems =
-        createQuoteItems(
-          state,
-          cart,
-          payload,
-        )
+      const quoteItems = createQuoteItems(state, cart, payload)
 
       if (!quoteItems.ok) {
         return quoteItems.response
       }
 
-      const subtotalEth =
-        sumEth(
-          quoteItems.items.map(
-            (
-              item,
-            ) =>
-              item.subtotalEth,
-          ),
-        )
+      const subtotalEth = sumEth(quoteItems.items.map((item) => item.subtotalEth))
 
-      const coupon =
-        getCouponResult(
-          state,
-          payload.couponCode,
-        )
+      const coupon = getCouponResult(state, payload.couponCode)
 
       const discountEth =
-        coupon.status ===
-        'applied'
-          ? percentageOfEth(
-              subtotalEth,
-              coupon.discountPercent,
-            )
-          : '0'
+        coupon.status === 'applied' ? percentageOfEth(subtotalEth, coupon.discountPercent) : '0'
 
-      const networkFeeEth =
-        networkFees[
-          payload.network
-        ]
+      const networkFeeEth = networkFees[payload.network]
 
-      const discountedSubtotal =
-        subtractEth(
-          subtotalEth,
-          discountEth,
-        )
+      const discountedSubtotal = subtractEth(subtotalEth, discountEth)
 
-      const totalEth =
-        addEth(
-          discountedSubtotal,
-          networkFeeEth,
-        )
+      const totalEth = addEth(discountedSubtotal, networkFeeEth)
 
-      const now =
-        Date.now()
+      const now = Date.now()
 
-      const quote: QuoteResponse =
-        {
-          id: `quote-${state.revision + 1}`,
+      const quote: QuoteResponse = {
+        id: `quote-${state.revision + 1}`,
 
-          cartId:
-            cart.id,
+        cartId: cart.id,
 
-          cartVersion:
-            cart.version,
+        cartVersion: cart.version,
 
-          network:
-            payload.network,
+        network: payload.network,
 
-          items:
-            quoteItems.items,
+        items: quoteItems.items,
 
-          coupon: {
-            code:
-              coupon.code,
+        coupon: {
+          code: coupon.code,
 
-            status:
-              coupon.status,
-          },
+          status: coupon.status,
+        },
 
-          subtotalEth,
+        subtotalEth,
 
-          discountEth,
+        discountEth,
 
-          networkFeeEth,
+        networkFeeEth,
 
-          totalEth,
+        totalEth,
 
-          expiresAt:
-            new Date(
-              now +
-                QUOTE_DURATION_MS,
-            ).toISOString(),
-        }
+        expiresAt: new Date(now + QUOTE_DURATION_MS).toISOString(),
+      }
 
-      state.quotes.push(
-        quote,
-      )
+      state.quotes.push(quote)
 
       state.revision += 1
 
-      mockDatabase.write(
-        state,
-      )
+      mockDatabase.write(state)
 
-      return HttpResponse.json(
-        structuredClone(
-          quote,
-        ),
-        {
-          status: 201,
-        },
-      )
+      return HttpResponse.json(structuredClone(quote), {
+        status: 201,
+      })
     },
   ),
 
   http.get(
     '*/api/quotes/:quoteId',
 
-    async ({
-      request,
-      params,
-    }) => {
-      const scenarioResponse =
-        await applyNetworkScenario(
-          'quote',
-        )
+    async ({ request, params }) => {
+      const scenarioResponse = await applyNetworkScenario('quote')
 
       if (scenarioResponse) {
         return scenarioResponse
       }
 
-      const quoteId =
-        typeof params.quoteId ===
-        'string'
-          ? params.quoteId
-          : undefined
+      const quoteId = typeof params.quoteId === 'string' ? params.quoteId : undefined
 
       if (!quoteId) {
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'O identificador da cotação é inválido.',
-          422,
-        )
+        return errorResponse('VALIDATION_ERROR', 'O identificador da cotação é inválido.', 422)
       }
 
-      const state =
-        mockDatabase.read()
+      const state = mockDatabase.read()
 
-      const quote =
-        state.quotes.find(
-          (
-            candidate,
-          ) =>
-            candidate.id ===
-            quoteId,
-        )
+      const quote = state.quotes.find((candidate) => candidate.id === quoteId)
 
       if (!quote) {
-        return errorResponse(
-          'NOT_FOUND',
-          'Cotação não encontrada.',
-          404,
-        )
+        return errorResponse('NOT_FOUND', 'Cotação não encontrada.', 404)
       }
 
-      const cartAccess =
-        canAccessCart(
-          request,
-          state,
-          quote.cartId,
-        )
+      const cartAccess = canAccessCart(request, state, quote.cartId)
 
-      if (
-        !cartAccess.authorized
-      ) {
+      if (!cartAccess.authorized) {
         return cartAccess.response
       }
 
-      return HttpResponse.json(
-        structuredClone(
-          quote,
-        ),
-      )
+      return HttpResponse.json(structuredClone(quote))
     },
   ),
 ]
