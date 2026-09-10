@@ -1,50 +1,51 @@
-import type { ComponentProps, CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 
 import { iconAssets, type IconName } from '@/assets/catalog'
 import { cn } from '@/lib/utils'
 
-interface IconProps extends Omit<ComponentProps<'img'>, 'alt' | 'src'> {
+interface IconProps {
   name: IconName
   label?: string
   color?: string
+  className?: string
+  style?: CSSProperties
+  title?: string
+  'aria-hidden'?: boolean
 }
 
-const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
-
-export function Icon({ name, label, color, className, style, ...props }: IconProps) {
+export function Icon({
+  name,
+  label,
+  color,
+  className,
+  style,
+  title,
+  'aria-hidden': ariaHidden,
+}: IconProps) {
   const iconSrc = iconAssets[name]
 
   if (color) {
     const coloredIconStyle: CSSProperties = {
       WebkitMaskImage: `url("${iconSrc}")`,
-
       maskImage: `url("${iconSrc}")`,
-
       WebkitMaskRepeat: 'no-repeat',
-
       maskRepeat: 'no-repeat',
-
       WebkitMaskPosition: 'center',
-
       maskPosition: 'center',
-
       WebkitMaskSize: 'contain',
-
       maskSize: 'contain',
-
       backgroundColor: color,
-
       ...style,
     }
 
     return (
-      <img
-        src={transparentPixel}
-        alt={label ?? ''}
-        aria-hidden={label ? undefined : true}
-        className={cn('size-5 shrink-0', className)}
+      <span
+        role={label ? 'img' : undefined}
+        aria-label={label}
+        aria-hidden={label ? undefined : (ariaHidden ?? true)}
+        title={title}
+        className={cn('inline-block size-5 shrink-0', className)}
         style={coloredIconStyle}
-        {...props}
       />
     )
   }
@@ -53,10 +54,11 @@ export function Icon({ name, label, color, className, style, ...props }: IconPro
     <img
       src={iconSrc}
       alt={label ?? ''}
-      aria-hidden={label ? undefined : true}
+      aria-hidden={label ? undefined : (ariaHidden ?? true)}
+      title={title}
       className={cn('size-5 shrink-0', className)}
       style={style}
-      {...props}
+      decoding="async"
     />
   )
 }

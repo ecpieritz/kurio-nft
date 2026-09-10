@@ -35,9 +35,7 @@ function isProtectedNavigation(pathname: string): boolean {
 
 function RoutedApplication() {
   const auth = useAuth()
-
   const handledExpiration = useRef<number | null>(null)
-
   const handledLogin = useRef<number | null>(null)
 
   useEffect(() => {
@@ -52,13 +50,10 @@ function RoutedApplication() {
 
     void router.navigate({
       to: paths.login,
-
       search: {
         redirect: returnTo,
-
         reason: 'session-expired',
       },
-
       replace: true,
     })
   }, [auth.sessionExpiredAt])
@@ -69,7 +64,6 @@ function RoutedApplication() {
     }
 
     handledLogin.current = auth.loginCompletedAt
-
     router.history.replace(consumeReturnTo(paths.home))
   }, [auth.loginCompletedAt])
 
@@ -93,7 +87,6 @@ function RoutedApplication() {
       context={{
         auth: {
           status: auth.status,
-
           userId: auth.user?.id ?? null,
         },
       }}
@@ -104,11 +97,11 @@ function RoutedApplication() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RealtimeProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <RealtimeProvider>
           <RoutedApplication />
-        </AuthProvider>
-      </RealtimeProvider>
+        </RealtimeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

@@ -6,3 +6,5 @@ public/mockServiceWorker.js
 test-results
 .lighthouseci
 package-lock.json
+lighthouse-results
+public/lighthouse-tests

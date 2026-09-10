@@ -1,57 +1,120 @@
 # Kurio E2E — Playwright
 
-A suíte usa o build otimizado do Vite e os handlers MSW da própria aplicação. Os fluxos REST passam pelos handlers MSW e os cenários de tempo real são emitidos pelo binding Socket.IO/MSW e recebidos pelo `socket.io-client` da aplicação.
+A suíte usa o build otimizado do Vite e os handlers MSW da própria aplicação. Os fluxos REST passam pelos handlers MSW e os cenários de tempo real usam o binding Socket.IO/MSW com o `socket.io-client` real da aplicação.
 
-## Execução
+## Execução padrão
 
 ```bash
 npm run test:e2e
 npm run test:e2e:report
 ```
 
-O `playwright.config.ts` executa todos os fluxos em Chromium nos dois perfis exigidos:
+`playwright.config.ts` executa o subconjunto cross-viewport estável em:
 
-- `chromium-desktop`: 1440 × 1000
-- `chromium-mobile`: 390 × 844, touch/mobile habilitado
+- `chromium-desktop`: 1440 × 1000;
+- `chromium-mobile`: 390 × 844, touch/mobile habilitado.
 
 O relatório HTML é salvo em `playwright-report/`. Traces, screenshots e vídeos de falhas ficam em `test-results/`.
 
+A configuração padrão seleciona:
+
+```text
+catalog.spec.ts
+authentication.spec.ts
+commerce.spec.ts
+accessibility-visual.spec.ts
+```
+
+Specs adicionais permanecem versionadas para hardening:
+
+```text
+account.spec.ts
+favorites.spec.ts
+realtime-resilience.spec.ts
+```
+
+Esses arquivos documentam cenários avançados, mas não fazem parte do `testMatch` da execução padrão atual.
+
 ## Baselines visuais
 
-As baselines são arquivos versionáveis em:
+As baselines são versionadas em:
 
 ```text
 tests/e2e/__screenshots__/
 ```
 
-Na primeira execução após uma alteração visual intencional, gere/atualize as quatro baselines nos dois projetos:
+Para atualizar uma mudança visual intencional:
 
 ```bash
 npm run test:e2e:update -- accessibility-visual.spec.ts -g "stable visual baselines"
 ```
 
-Revise as imagens geradas antes de versioná-las. Depois, a execução normal usa comparação pixel a pixel com `maxDiffPixelRatio: 0.01`.
+Revise as imagens antes de versioná-las. A comparação usa `maxDiffPixelRatio: 0.01`.
 
-## Matriz de cobertura
+## Cobertura da execução padrão
 
-| Requisito | Especificação |
-| --- | --- |
-| Busca, filtros, ordenação, paginação e histórico | `catalog.spec.ts` |
-| Detalhe direto e NFT inexistente | `catalog.spec.ts` |
-| Cadastro, login, expiração, logout e troca de usuário | `authentication.spec.ts` |
-| Favoritos, optimistic update, falha e rollback | `favorites.spec.ts` |
-| Carrinho, quantidade, remoção, cupom e persistência | `commerce.spec.ts` |
-| Compra completa até recibo confirmado | `commerce.spec.ts` |
-| Falha, clique repetido, idempotência e timeout | `commerce.spec.ts`, `realtime-resilience.spec.ts` |
-| Perfil, avatar, senha e carteiras | `account.spec.ts` |
-| Preço e disponibilidade via Socket.IO | `commerce.spec.ts`, `realtime-resilience.spec.ts` |
-| Eventos antigos/duplicados, reconexão e retomada | `realtime-resilience.spec.ts` |
-| Teclado, foco de diálogo e formulários | `accessibility-visual.spec.ts` |
-| Skeleton, falha e retry | `accessibility-visual.spec.ts` |
-| Regressão visual | `accessibility-visual.spec.ts` |
+- busca, filtros combinados, ordenação, paginação e restauração da URL/histórico;
+- acesso direto ao detalhe e NFT inexistente;
+- interações do catálogo da Home sem navegação indevida para Marketplace;
+- cadastro, sessão persistente e logout com confirmação;
+- carrinho visitante, quantidade, refresh, merge após login e remoção;
+- preservação do carrinho em pagamento recusado;
+- regressão visual de Home, detalhe, carrinho e checkout em desktop/mobile.
 
-## Isolamento e cenários sensíveis a tempo
+## Specs avançadas versionadas
 
-Cada teste começa com `POST /api/__mock/reset`, remove dados transitórios de sessão/visitante/pedido pendente e volta ao cenário `default`.
+Os specs fora da execução padrão cobrem ou documentam:
 
-Os cenários de latência e falha são controlados pelo endpoint MSW `/api/__mock/scenario`. O teste de recuperação de pedido fixa explicitamente o relógio com `page.clock.setFixedTime()` depois que o pedido pendente é persistido, evitando depender de espera arbitrária para ultrapassar a janela de confirmação.
+- perfil, avatar, senha e carteiras;
+- rollback de favorito;
+- redirecionamento de favorito anônimo;
+- alteração de preço/disponibilidade via Socket.IO;
+- duplicatas/eventos antigos;
+- reconexão;
+- recuperação de pedido pendente;
+- compra completa e idempotência;
+- skeleton/falha/retry;
+- teclado/foco de diálogos.
+
+Eles permanecem no repositório para hardening, mas não são apresentados como testes aprovados pela execução padrão.
+
+## Isolamento
+
+A fixture automática:
+
+1. carrega a aplicação;
+2. executa `POST /api/__mock/reset`;
+3. remove dados transitórios de sessão, visitante, pedido pendente e cenário;
+4. recarrega a aplicação.
+
+Assim cada teste parte de um estado conhecido.
+
+## Cenários sensíveis a tempo
+
+O endpoint MSW `/api/__mock/scenario` controla latência/falhas/eventos. Cenários avançados podem fixar o relógio do Playwright para evitar esperas arbitrárias quando a regra depende de tempo.
+
+## Artefatos
+
+Configuração:
+
+```text
+playwright.config.ts
+```
+
+Baselines:
+
+```text
+tests/e2e/__screenshots__/
+```
+
+Relatório local:
+
+```text
+playwright-report/
+```
+
+Falhas/traces:
+
+```text
+test-results/
+```

@@ -1,4 +1,9 @@
-import type { DecimalString, EntityId, ISODateString } from '@/lib/api/contracts/common'
+import type {
+  DecimalString,
+  EntityId,
+  ISODateString,
+} from '@/lib/api/contracts/common'
+import type { Order } from '@/lib/api/contracts/orders'
 
 export interface NftEditionAvailabilityUpdate {
   editionId: EntityId
@@ -13,5 +18,13 @@ export interface NftUpdatedEvent {
   previousPriceEth?: DecimalString
   availableQuantity: number
   editions: NftEditionAvailabilityUpdate[]
+  occurredAt: ISODateString
+}
+
+export interface OrderUpdatedEvent {
+  orderId: EntityId
+  userId: EntityId
+  version: number
+  order: Order
   occurredAt: ISODateString
 }
