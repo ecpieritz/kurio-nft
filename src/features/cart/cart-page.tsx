@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
@@ -8,7 +9,9 @@ import {
   useRemoveCartItemMutation,
   useUpdateCartItemMutation,
 } from '@/features/cart/cart-query'
-import type { CartItem } from '@/lib/api/contracts'
+import { buildCartQuoteRequest } from '@/features/checkout/checkout-quote'
+import { useCreateQuoteMutation } from '@/features/quote/quote-query'
+import type { Cart, CartItem, QuoteResponse } from '@/lib/api/contracts'
 import { ApiClientError } from '@/lib/api/error'
 
 function getSubtotal(items: CartItem[]): string {
@@ -48,6 +51,35 @@ export function CartPage() {
   const updateMutation = useUpdateCartItemMutation()
 
   const removeMutation = useRemoveCartItemMutation()
+
+  const quoteMutation = useCreateQuoteMutation()
+
+  const [couponInput, setCouponInput] = useState('')
+
+  const [quote, setQuote] = useState<QuoteResponse | null>(null)
+
+  async function applyCoupon(cart: Cart): Promise<void> {
+    quoteMutation.reset()
+
+    try {
+      const request = await buildCartQuoteRequest(cart, 'ethereum', couponInput)
+      setQuote(await quoteMutation.mutateAsync(request))
+    } catch {
+      setQuote(null)
+    }
+  }
+
+  async function removeCoupon(cart: Cart): Promise<void> {
+    setCouponInput('')
+    quoteMutation.reset()
+
+    try {
+      const request = await buildCartQuoteRequest(cart, 'ethereum')
+      setQuote(await quoteMutation.mutateAsync(request))
+    } catch {
+      setQuote(null)
+    }
+  }
 
   if (cartQuery.isPending) {
     return (
@@ -107,6 +139,8 @@ export function CartPage() {
   const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0)
 
   const subtotal = getSubtotal(cart.items)
+
+  const currentQuote = quote?.cartVersion === cart.version ? quote : null
 
   const mutationError = updateMutation.error ?? removeMutation.error
 
@@ -354,24 +388,64 @@ export function CartPage() {
                 id="coupon"
                 type="text"
                 placeholder="Digite seu cupom"
-                disabled
+                value={couponInput}
+                disabled={quoteMutation.isPending}
+                onChange={(event) => setCouponInput(event.target.value)}
                 className="h-10 min-w-0 flex-1"
               />
 
-              <Button type="button" variant="outline" size="sm" disabled>
-                Aplicar
-              </Button>
+              {currentQuote?.coupon.status === 'applied' ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={quoteMutation.isPending}
+                  onClick={() => void removeCoupon(cart)}
+                >
+                  Remover
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!couponInput.trim() || quoteMutation.isPending}
+                  onClick={() => void applyCoupon(cart)}
+                >
+                  Aplicar
+                </Button>
+              )}
             </div>
 
-            <p className="mt-2 text-xs text-muted-foreground">
-              Cupons serão habilitados na etapa de cotação.
-            </p>
+            {currentQuote?.coupon.status === 'applied' && (
+              <p role="status" className="mt-2 text-xs text-primary">
+                Cupom {currentQuote.coupon.code} aplicado.
+              </p>
+            )}
+
+            {currentQuote?.coupon.status === 'invalid' && (
+              <p role="alert" className="mt-2 text-xs text-destructive">
+                Código promocional inválido.
+              </p>
+            )}
+
+            {currentQuote?.coupon.status === 'expired' && (
+              <p role="alert" className="mt-2 text-xs text-destructive">
+                Este código promocional expirou.
+              </p>
+            )}
+
+            {quoteMutation.isError && (
+              <p role="alert" className="mt-2 text-xs text-destructive">
+                Não foi possível validar o cupom. Tente novamente.
+              </p>
+            )}
           </div>
 
           <div className="mt-6 flex items-center justify-between border-t border-border/70 pt-5 font-bold">
             <span>Total</span>
 
-            <span className="text-primary">{subtotal} ETH</span>
+            <span className="text-primary">{currentQuote?.totalEth ?? subtotal} ETH</span>
           </div>
 
           {hasCartConflict ? (

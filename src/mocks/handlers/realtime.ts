@@ -9,523 +9,271 @@ import type {
   OrderUpdatedEvent,
 } from '@/lib/api/contracts'
 import { mockDatabase } from '@/mocks/database/database'
-import {
-  getActiveScenario,
-  setActiveScenario,
-} from '@/mocks/scenarios/runtime'
+import { getActiveScenario, setActiveScenario } from '@/mocks/scenarios/runtime'
 
-const realtimeApi =
-  ws.link(
-    'wss://realtime.kurio.test/socket.io/',
-  )
+const realtimeApi = ws.link('wss://realtime.kurio.test/socket.io/')
 
-const REALTIME_NFT_ID =
-  'emerald-ape-042'
+const REALTIME_NFT_ID = 'emerald-ape-042'
 
-const REALTIME_PRICE:
-  DecimalString =
-  '1.29'
+const REALTIME_PRICE: DecimalString = '1.29'
 
-const STALE_REALTIME_PRICE:
-  DecimalString =
-  '0.01'
+const STALE_REALTIME_PRICE: DecimalString = '0.01'
 
-const REALTIME_EDITION_ID =
-  `${REALTIME_NFT_ID}:1-50`
+const REALTIME_EDITION_ID = `${REALTIME_NFT_ID}:1-50`
 
-function toRealtimeEvent(
-  nft: NftDetails,
-): NftUpdatedEvent {
+function toRealtimeEvent(nft: NftDetails): NftUpdatedEvent {
   return {
-    nftId:
-      nft.id,
+    nftId: nft.id,
 
-    version:
-      nft.version,
+    version: nft.version,
 
-    priceEth:
-      nft.priceEth,
+    priceEth: nft.priceEth,
 
-    previousPriceEth:
-      nft.previousPriceEth,
+    previousPriceEth: nft.previousPriceEth,
 
-    availableQuantity:
-      nft.availableQuantity,
+    availableQuantity: nft.availableQuantity,
 
-    editions:
-      nft.editions.map(
-        (edition) => ({
-          editionId:
-            edition.id,
+    editions: nft.editions.map((edition) => ({
+      editionId: edition.id,
 
-          availableQuantity:
-            edition.availableQuantity,
+      availableQuantity: edition.availableQuantity,
 
-          purchasable:
-            edition.purchasable,
-        }),
-      ),
+      purchasable: edition.purchasable,
+    })),
 
-    occurredAt:
-      new Date().toISOString(),
+    occurredAt: new Date().toISOString(),
   }
 }
 
-function toOrderUpdatedEvent(
-  order: Order,
-): OrderUpdatedEvent {
+function toOrderUpdatedEvent(order: Order): OrderUpdatedEvent {
   return {
-    orderId:
-      order.id,
+    orderId: order.id,
 
-    userId:
-      order.userId,
+    userId: order.userId,
 
-    version:
-      order.version,
+    version: order.version,
 
-    order:
-      structuredClone(
-        order,
-      ),
+    order: structuredClone(order),
 
-    occurredAt:
-      new Date().toISOString(),
+    occurredAt: new Date().toISOString(),
   }
 }
 
-function getConnectedUserId(
-  clientUrl: string | URL,
-): string | null {
-  const url =
-    clientUrl instanceof URL
-      ? clientUrl
-      : new URL(clientUrl)
+function getConnectedUserId(clientUrl: string | URL): string | null {
+  const url = clientUrl instanceof URL ? clientUrl : new URL(clientUrl)
 
-  const sessionToken =
-    url.searchParams.get(
-      'sessionToken',
-    )
+  const sessionToken = url.searchParams.get('sessionToken')
 
   if (!sessionToken) {
     return null
   }
 
-  const state =
-    mockDatabase.read()
+  const state = mockDatabase.read()
 
-  const session =
-    state.sessions.find(
-      (candidate) =>
-        candidate.id ===
-        sessionToken,
-    )
+  const session = state.sessions.find((candidate) => candidate.id === sessionToken)
 
-  if (
-    !session ||
-    Date.parse(
-      session.expiresAt,
-    ) <= Date.now()
-  ) {
+  if (!session || Date.parse(session.expiresAt) <= Date.now()) {
     return null
   }
 
-  if (
-    getActiveScenario()
-      .flags
-      .sessionExpired
-  ) {
+  if (getActiveScenario().flags.sessionExpired) {
     return null
   }
 
   return session.userId
 }
 
-function applyRealtimeScenario():
-  NftUpdatedEvent | null {
-  const scenario =
-    getActiveScenario()
+function applyRealtimeScenario(): NftUpdatedEvent | null {
+  const scenario = getActiveScenario()
 
-  const shouldChangePrice =
-    scenario.flags
-      .priceChanged ===
-    true
+  const shouldChangePrice = scenario.flags.priceChanged === true
 
-  const shouldSellOutEdition =
-    scenario.flags
-      .editionSoldOut ===
-    true
+  const shouldSellOutEdition = scenario.flags.editionSoldOut === true
 
-  if (
-    !shouldChangePrice &&
-    !shouldSellOutEdition
-  ) {
+  if (!shouldChangePrice && !shouldSellOutEdition) {
     return null
   }
 
-  const state =
-    mockDatabase.read()
+  const state = mockDatabase.read()
 
-  const nft =
-    state.nfts.find(
-      (candidate) =>
-        candidate.id ===
-        REALTIME_NFT_ID,
-    )
+  const nft = state.nfts.find((candidate) => candidate.id === REALTIME_NFT_ID)
 
   if (!nft) {
     return null
   }
 
-  let changed =
-    false
+  let changed = false
 
-  if (
-    shouldChangePrice &&
-    nft.priceEth !==
-      REALTIME_PRICE
-  ) {
-    nft.previousPriceEth =
-      nft.priceEth
+  if (shouldChangePrice && nft.priceEth !== REALTIME_PRICE) {
+    nft.previousPriceEth = nft.priceEth
 
-    nft.priceEth =
-      REALTIME_PRICE
+    nft.priceEth = REALTIME_PRICE
 
-    changed =
-      true
+    changed = true
   }
 
-  if (
-    shouldSellOutEdition
-  ) {
-    const edition =
-      nft.editions.find(
-        (candidate) =>
-          candidate.id ===
-          REALTIME_EDITION_ID,
+  if (shouldSellOutEdition) {
+    const edition = nft.editions.find((candidate) => candidate.id === REALTIME_EDITION_ID)
+
+    if (edition && (edition.availableQuantity !== 0 || edition.purchasable)) {
+      edition.availableQuantity = 0
+
+      edition.purchasable = false
+
+      nft.availableQuantity = nft.editions.reduce(
+        (highest, candidate) => Math.max(highest, candidate.availableQuantity),
+        0,
       )
 
-    if (
-      edition &&
-      (
-        edition.availableQuantity !==
-          0 ||
-        edition.purchasable
-      )
-    ) {
-      edition.availableQuantity =
-        0
-
-      edition.purchasable =
-        false
-
-      nft.availableQuantity =
-        nft.editions.reduce(
-          (
-            highest,
-            candidate,
-          ) =>
-            Math.max(
-              highest,
-              candidate.availableQuantity,
-            ),
-          0,
-        )
-
-      changed =
-        true
+      changed = true
     }
   }
 
   if (changed) {
-    nft.version +=
-      1
+    nft.version += 1
 
-    state.revision +=
-      1
+    state.revision += 1
 
-    mockDatabase.write(
-      state,
-    )
+    mockDatabase.write(state)
   }
 
-  return toRealtimeEvent(
-    nft,
-  )
+  return toRealtimeEvent(nft)
 }
 
-function createEventSignature(
-  event: NftUpdatedEvent,
-): string {
+function createEventSignature(event: NftUpdatedEvent): string {
   return JSON.stringify({
-    nftId:
-      event.nftId,
+    nftId: event.nftId,
 
-    version:
-      event.version,
+    version: event.version,
 
-    priceEth:
-      event.priceEth,
+    priceEth: event.priceEth,
 
-    availableQuantity:
-      event.availableQuantity,
+    availableQuantity: event.availableQuantity,
 
-    editions:
-      event.editions,
+    editions: event.editions,
   })
 }
 
-function createStaleEvent(
-  event: NftUpdatedEvent,
-): NftUpdatedEvent {
+function createStaleEvent(event: NftUpdatedEvent): NftUpdatedEvent {
   return {
     ...event,
 
-    version:
-      Math.max(
-        0,
-        event.version - 1,
-      ),
+    version: Math.max(0, event.version - 1),
 
-    priceEth:
-      STALE_REALTIME_PRICE,
+    priceEth: STALE_REALTIME_PRICE,
 
-    previousPriceEth:
-      event.priceEth,
+    previousPriceEth: event.priceEth,
 
-    occurredAt:
-      new Date(
-        Date.now() -
-          60_000,
-      ).toISOString(),
+    occurredAt: new Date(Date.now() - 60_000).toISOString(),
   }
 }
 
 export const realtimeHandlers = [
-  realtimeApi.addEventListener(
-    'connection',
-    (connection) => {
-      const socket =
-        toSocketIo(
-          connection,
-        )
+  realtimeApi.addEventListener('connection', (connection) => {
+    const socket = toSocketIo(connection)
 
-      const connectedUserId =
-        getConnectedUserId(
-          connection.client.url,
-        )
+    const connectedUserId = getConnectedUserId(connection.client.url)
 
-      const lastOrderVersionById =
-        new Map<
-          string,
-          number
-        >()
+    const lastOrderVersionById = new Map<string, number>()
 
-      let lastNftSignature:
-        string | null =
-        null
+    let lastNftSignature: string | null = null
 
-      let staleSequenceEmitted =
-        false
+    let staleSequenceEmitted = false
 
-      let disconnectTimer:
-        number | null =
-        null
+    let disconnectTimer: number | null = null
 
-      if (connectedUserId) {
-        const state =
-          mockDatabase.read()
+    if (connectedUserId) {
+      const state = mockDatabase.read()
 
-        for (
-          const order
-          of state.orders
-        ) {
-          if (
-            order.userId ===
-            connectedUserId
-          ) {
-            lastOrderVersionById.set(
-              order.id,
-              order.version,
-            )
-          }
+      for (const order of state.orders) {
+        if (order.userId === connectedUserId) {
+          lastOrderVersionById.set(order.id, order.version)
         }
       }
+    }
 
-      const scenarioAtConnection =
-        getActiveScenario()
+    const scenarioAtConnection = getActiveScenario()
 
-      if (
-        scenarioAtConnection
-          .flags
-          .realtimeDisconnectOnce
-      ) {
-        disconnectTimer =
-          window.setTimeout(
-            () => {
-              setActiveScenario(
-                'price-changed',
-              )
+    if (scenarioAtConnection.flags.realtimeDisconnectOnce) {
+      disconnectTimer = window.setTimeout(() => {
+        setActiveScenario('price-changed')
 
-              connection.client.close(
-                1012,
-                'Mock realtime reconnect',
-              )
-            },
-            180,
-          )
+        connection.client.close(1012, 'Mock realtime reconnect')
+      }, 180)
+    }
+
+    function synchronizeNft(): void {
+      const event = applyRealtimeScenario()
+
+      if (!event) {
+        return
       }
 
-      function synchronizeNft(): void {
-        const event =
-          applyRealtimeScenario()
+      const signature = createEventSignature(event)
 
-        if (!event) {
-          return
-        }
-
-        const signature =
-          createEventSignature(
-            event,
-          )
-
-        if (
-          signature ===
-          lastNftSignature
-        ) {
-          return
-        }
-
-        lastNftSignature =
-          signature
-
-        socket.client.emit(
-          'nft.updated',
-          event,
-        )
-
-        if (
-          getActiveScenario()
-            .flags
-            .realtimeStaleDuplicate &&
-          !staleSequenceEmitted
-        ) {
-          staleSequenceEmitted =
-            true
-
-          window.setTimeout(
-            () => {
-              socket.client.emit(
-                'nft.updated',
-                event,
-              )
-            },
-            35,
-          )
-
-          window.setTimeout(
-            () => {
-              socket.client.emit(
-                'nft.updated',
-                createStaleEvent(
-                  event,
-                ),
-              )
-            },
-            70,
-          )
-        }
+      if (signature === lastNftSignature) {
+        return
       }
 
-      function synchronizeOrders(): void {
-        if (
-          !connectedUserId
-        ) {
-          return
-        }
+      lastNftSignature = signature
 
-        const state =
-          mockDatabase.read()
+      socket.client.emit('nft.updated', event)
 
-        for (
-          const order
-          of state.orders
-        ) {
-          if (
-            order.userId !==
-            connectedUserId
-          ) {
-            continue
-          }
+      if (getActiveScenario().flags.realtimeStaleDuplicate && !staleSequenceEmitted) {
+        staleSequenceEmitted = true
 
-          const previousVersion =
-            lastOrderVersionById.get(
-              order.id,
-            )
+        window.setTimeout(() => {
+          socket.client.emit('nft.updated', event)
+        }, 35)
 
-          if (
-            previousVersion !==
-              undefined &&
-            order.version <=
-              previousVersion
-          ) {
-            continue
-          }
+        window.setTimeout(() => {
+          socket.client.emit('nft.updated', createStaleEvent(event))
+        }, 70)
+      }
+    }
 
-          lastOrderVersionById.set(
-            order.id,
-            order.version,
-          )
-
-          socket.client.emit(
-            'order.updated',
-            toOrderUpdatedEvent(
-              order,
-            ),
-          )
-        }
+    function synchronizeOrders(): void {
+      if (!connectedUserId) {
+        return
       }
 
-      const initialTimer =
-        window.setTimeout(
-          () => {
-            synchronizeNft()
-            synchronizeOrders()
-          },
-          150,
-        )
+      const state = mockDatabase.read()
 
-      const interval =
-        window.setInterval(
-          () => {
-            synchronizeNft()
-            synchronizeOrders()
-          },
-          500,
-        )
+      for (const order of state.orders) {
+        if (order.userId !== connectedUserId) {
+          continue
+        }
 
-      connection.client
-        .addEventListener(
-          'close',
-          () => {
-            window.clearTimeout(
-              initialTimer,
-            )
+        const previousVersion = lastOrderVersionById.get(order.id)
 
-            window.clearInterval(
-              interval,
-            )
+        if (previousVersion !== undefined && order.version <= previousVersion) {
+          continue
+        }
 
-            if (
-              disconnectTimer !==
-              null
-            ) {
-              window.clearTimeout(
-                disconnectTimer,
-              )
-            }
-          },
-        )
-    },
-  ),
+        lastOrderVersionById.set(order.id, order.version)
+
+        socket.client.emit('order.updated', toOrderUpdatedEvent(order))
+      }
+    }
+
+    const initialTimer = window.setTimeout(() => {
+      synchronizeNft()
+      synchronizeOrders()
+    }, 150)
+
+    const interval = window.setInterval(() => {
+      synchronizeNft()
+      synchronizeOrders()
+    }, 500)
+
+    connection.client.addEventListener('close', () => {
+      window.clearTimeout(initialTimer)
+
+      window.clearInterval(interval)
+
+      if (disconnectTimer !== null) {
+        window.clearTimeout(disconnectTimer)
+      }
+    })
+  }),
 ]

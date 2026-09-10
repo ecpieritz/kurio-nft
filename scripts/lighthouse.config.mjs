@@ -3,12 +3,7 @@ export const lighthouseAuditConfig = {
   runs: 3,
   scenario: 'default',
 
-  categories: [
-    'performance',
-    'accessibility',
-    'best-practices',
-    'seo',
-  ],
+  categories: ['performance', 'accessibility', 'best-practices', 'seo'],
 
   routes: [
     {
@@ -18,10 +13,8 @@ export const lighthouseAuditConfig = {
     },
     {
       id: 'nft-detail',
-      path:
-        '/nfts/sage-nomad-009',
-      label:
-        'Detalhe do NFT',
+      path: '/nfts/sage-nomad-009',
+      label: 'Detalhe do NFT',
     },
   ],
 

@@ -1,18 +1,18 @@
-import {
-  expect,
-  test as base,
-  type Page,
-} from '@playwright/test'
+import { expect, test as base, type Page } from '@playwright/test'
 
 export type MockScenario =
   | 'default'
   | 'empty-catalog'
   | 'slow-network'
+  | 'out-of-order'
   | 'offline'
   | 'server-error'
   | 'session-expired'
+  | 'registration-conflict'
   | 'price-changed'
   | 'edition-sold-out'
+  | 'invalid-coupon'
+  | 'expired-coupon'
   | 'favorite-mutation-error'
   | 'realtime-stale-duplicate'
   | 'realtime-reconnect'
@@ -36,10 +36,7 @@ export interface MockStateSummary {
     id: string
     userId: string
 
-    status:
-      | 'pending'
-      | 'confirmed'
-      | 'declined'
+    status: 'pending' | 'confirmed' | 'declined'
 
     createdAt: string
   }>
@@ -51,294 +48,160 @@ export interface MockStateSummary {
   }>
 }
 
-export async function setMockScenario(
-  page: Page,
-  scenarioId: MockScenario,
-): Promise<void> {
-  const result =
-    await page.evaluate(
-      async (
-        id,
-      ) => {
-        const response =
-          await fetch(
-            '/api/__mock/scenario',
-            {
-              method:
-                'PUT',
+export async function setMockScenario(page: Page, scenarioId: MockScenario): Promise<void> {
+  const result = await page.evaluate(async (id) => {
+    const response = await fetch('/api/__mock/scenario', {
+      method: 'PUT',
 
-              headers: {
-                'Content-Type':
-                  'application/json',
-              },
-
-              body:
-                JSON.stringify({
-                  scenarioId:
-                    id,
-                }),
-            },
-          )
-
-        return {
-          ok:
-            response.ok,
-
-          body:
-            await response.text(),
-        }
+      headers: {
+        'Content-Type': 'application/json',
       },
-      scenarioId,
-    )
 
-  expect(
-    result.ok,
-    result.body,
-  ).toBe(
-    true,
-  )
+      body: JSON.stringify({
+        scenarioId: id,
+      }),
+    })
+
+    return {
+      ok: response.ok,
+
+      body: await response.text(),
+    }
+  }, scenarioId)
+
+  expect(result.ok, result.body).toBe(true)
 }
 
-export async function getMockState(
-  page: Page,
-): Promise<MockStateSummary> {
-  return page.evaluate(
-    async () => {
-      const response =
-        await fetch(
-          '/api/__mock/state',
-        )
+export async function getMockState(page: Page): Promise<MockStateSummary> {
+  return page.evaluate(async () => {
+    const response = await fetch('/api/__mock/state')
 
-      if (
-        !response.ok
-      ) {
-        throw new Error(
-          await response.text(),
-        )
-      }
+    if (!response.ok) {
+      throw new Error(await response.text())
+    }
 
-      return (
-        await response.json()
-      ) as MockStateSummary
-    },
-  )
+    return (await response.json()) as MockStateSummary
+  })
 }
 
-export async function loginAs(
-  page: Page,
-  user:
-    | 'nova'
-    | 'orion' = 'nova',
-): Promise<void> {
+export async function loginAs(page: Page, user: 'nova' | 'orion' = 'nova'): Promise<void> {
   const credentials =
     user === 'nova'
       ? {
-          email:
-            'nova@kurio.test',
+          email: 'nova@kurio.test',
 
-          password:
-            'Kurio123!',
+          password: 'Kurio123!',
         }
       : {
-          email:
-            'orion@kurio.test',
+          email: 'orion@kurio.test',
 
-          password:
-            'Collector123!',
+          password: 'Collector123!',
         }
 
-  await page.goto(
-    '/login',
-  )
+  await page.goto('/login')
+
+  await page.getByLabel('E-mail').fill(credentials.email)
 
   await page
-    .getByLabel(
-      'E-mail',
-    )
-    .fill(
-      credentials.email,
-    )
+    .getByLabel('Senha', {
+      exact: true,
+    })
+    .fill(credentials.password)
 
   await page
-    .getByLabel(
-      'Senha',
-      {
-        exact: true,
-      },
-    )
-    .fill(
-      credentials.password,
-    )
-
-  await page
-    .getByRole(
-      'button',
-      {
-        name: 'Entrar',
-        exact: true,
-      },
-    )
+    .getByRole('button', {
+      name: 'Entrar',
+      exact: true,
+    })
     .click()
 
-  await expect(
-    page,
-  ).toHaveURL('/')
+  await expect(page).toHaveURL('/')
 }
 
-export async function logoutFromUi(
-  page: Page,
-  mobile: boolean,
-): Promise<void> {
+export async function logoutFromUi(page: Page, mobile: boolean): Promise<void> {
   if (mobile) {
-    await page.goto(
-      '/profile',
-    )
+    await page.goto('/profile')
 
     await page
-      .getByRole(
-        'button',
-        {
-          name:
-            'Sair da conta',
-        },
-      )
+      .getByRole('button', {
+        name: 'Sair da conta',
+      })
       .click()
   } else {
     await page
-      .getByRole(
-        'button',
-        {
-          name:
-            /^Olá, .+!$/,
-        },
-      )
+      .getByRole('button', {
+        name: /^Olá, .+!$/,
+      })
       .click()
 
     await page
-      .getByRole(
-        'menuitem',
-        {
-          name: 'Sair',
-        },
-      )
+      .getByRole('menuitem', {
+        name: 'Sair',
+      })
       .click()
   }
 
-  const dialog =
-    page.getByRole(
-      'dialog',
-      {
-        name:
-          'Sair da sua conta?',
-      },
-    )
+  const dialog = page.getByRole('dialog', {
+    name: 'Sair da sua conta?',
+  })
 
-  await expect(
-    dialog,
-  ).toBeVisible()
+  await expect(dialog).toBeVisible()
 
   await dialog
-    .getByRole(
-      'button',
-      {
-        name:
-          'Sim, sair',
-      },
-    )
+    .getByRole('button', {
+      name: 'Sim, sair',
+    })
     .click()
 
-  await expect(
-    page,
-  ).toHaveURL('/')
+  await expect(page).toHaveURL('/')
 }
 
 interface KurioFixtures {
   resetMocks: void
 }
 
-export const test =
-  base.extend<KurioFixtures>({
-    resetMocks: [
-      async (
-        {
-          page,
-        },
-        use,
-      ) => {
-        await page.goto('/')
+export const test = base.extend<KurioFixtures>({
+  resetMocks: [
+    async ({ page }, use) => {
+      await page.goto('/')
 
-        await expect(
-          page.locator(
-            '#main-content',
-          ),
-        ).toBeVisible()
+      await expect(page.locator('#main-content')).toBeVisible()
 
-        const reset =
-          await page.evaluate(
-            async () => {
-              const response =
-                await fetch(
-                  '/api/__mock/reset',
-                  {
-                    method:
-                      'POST',
-                  },
-                )
+      const reset = await page.evaluate(async () => {
+        const response = await fetch('/api/__mock/reset', {
+          method: 'POST',
+        })
 
-              return {
-                ok:
-                  response.ok,
+        return {
+          ok: response.ok,
 
-                body:
-                  await response.text(),
-              }
-            },
-          )
+          body: await response.text(),
+        }
+      })
 
-        expect(
-          reset.ok,
-          reset.body,
-        ).toBe(
-          true,
-        )
+      expect(reset.ok, reset.body).toBe(true)
 
-        await page.evaluate(
-          () => {
-            localStorage.removeItem(
-              'kurio:session-token:v1',
-            )
+      await page.evaluate(() => {
+        localStorage.removeItem('kurio:session-token:v1')
 
-            localStorage.removeItem(
-              'kurio:visitor-id:v1',
-            )
+        localStorage.removeItem('kurio:visitor-id:v1')
 
-            localStorage.removeItem(
-              'kurio:pending-order:v1',
-            )
+        localStorage.removeItem('kurio:pending-order:v1')
 
-            localStorage.removeItem(
-              'kurio:msw:scenario:v1',
-            )
-          },
-        )
+        localStorage.removeItem('kurio:msw:scenario:v1')
+      })
 
-        await page.reload()
+      await page.reload()
 
-        await expect(
-          page.locator(
-            '#main-content',
-          ),
-        ).toBeVisible()
+      await expect(page.locator('#main-content')).toBeVisible()
 
-        await use()
-      },
+      await use()
+    },
 
-      {
-        auto: true,
-      },
-    ],
-  })
+    {
+      auto: true,
+    },
+  ],
+})
 
-export {
-  expect,
-}
+export { expect }

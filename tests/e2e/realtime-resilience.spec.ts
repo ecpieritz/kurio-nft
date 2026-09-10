@@ -1,10 +1,4 @@
-import {
-  test,
-  expect,
-  getMockState,
-  loginAs,
-  setMockScenario,
-} from './support/fixtures'
+import { test, expect, getMockState, loginAs, setMockScenario } from './support/fixtures'
 
 test('ignores duplicate and stale Socket.IO events after applying the newest NFT version', async ({
   page,
@@ -28,7 +22,9 @@ test('ignores duplicate and stale Socket.IO events after applying the newest NFT
 test('reconnects the Socket.IO client and resumes NFT synchronization', async ({ page }) => {
   await loginAs(page)
   await page.goto('/cart')
-  await expect(page.getByRole('region', { name: 'Itens do carrinho' }).getByText('1.19 ETH')).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Itens do carrinho' }).getByText('1.19 ETH'),
+  ).toBeVisible()
 
   await setMockScenario(page, 'realtime-reconnect')
   await page.reload()
@@ -55,7 +51,10 @@ test('blocks checkout when a selected edition becomes unavailable through Socket
   await expect(page.getByRole('link', { name: 'Continuar para pagamento' })).toHaveCount(0)
 })
 
-test('recovers the same pending order after a connection interruption', async ({ page, context }) => {
+test('recovers the same pending order after a connection interruption', async ({
+  page,
+  context,
+}) => {
   test.slow()
 
   await loginAs(page)

@@ -62,13 +62,13 @@ VITE_MOCK_SCENARIO=default
 VITE_REALTIME_URL=
 ```
 
-| Variável | Função |
-| --- | --- |
-| `VITE_API_BASE_URL` | Prefixo usado pelo cliente Axios. |
-| `VITE_API_TIMEOUT_MS` | Timeout das chamadas REST. |
-| `VITE_ENABLE_MOCKS` | `true` ativa MSW no build de desenvolvimento/demonstração. |
-| `VITE_MOCK_SCENARIO` | Cenário determinístico inicial. |
-| `VITE_REALTIME_URL` | Endpoint Socket.IO opcional. Quando vazio e os mocks estão ativos, usa o endpoint interceptado `https://realtime.kurio.test`. |
+| Variável              | Função                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`   | Prefixo usado pelo cliente Axios.                                                                                             |
+| `VITE_API_TIMEOUT_MS` | Timeout das chamadas REST.                                                                                                    |
+| `VITE_ENABLE_MOCKS`   | `true` ativa MSW no build de desenvolvimento/demonstração.                                                                    |
+| `VITE_MOCK_SCENARIO`  | Cenário determinístico inicial.                                                                                               |
+| `VITE_REALTIME_URL`   | Endpoint Socket.IO opcional. Quando vazio e os mocks estão ativos, usa o endpoint interceptado `https://realtime.kurio.test`. |
 
 ## Comandos
 
@@ -346,12 +346,12 @@ Condições da auditoria automatizada:
 
 Metas:
 
-| Categoria | Meta |
-| --- | ---: |
-| Performance | >= 90 |
-| Accessibility | >= 95 |
+| Categoria      |  Meta |
+| -------------- | ----: |
+| Performance    | >= 90 |
+| Accessibility  | >= 95 |
 | Best Practices | >= 95 |
-| SEO | >= 90 |
+| SEO            | >= 90 |
 
 Os relatórios exploratórios anteriores podem ser arquivados fora de `public/`. Para a entrega final, prefira versionar `lighthouse-results/`, gerado pelo comando acima, para não incluir relatórios como assets públicos do Vite.
 

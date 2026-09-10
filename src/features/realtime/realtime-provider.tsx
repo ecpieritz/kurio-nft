@@ -70,8 +70,37 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
 
       latestVersionByNftRef.current.set(event.nftId, event.version)
 
-      queryClient.setQueryData<NftDetails>(
-        catalogQueryKeys.detail(event.nftId),
+      queryClient.setQueryData<NftDetails>(catalogQueryKeys.detail(event.nftId), (current) => {
+        if (!current) {
+          return current
+        }
+
+        return {
+          ...current,
+          priceEth: event.priceEth,
+          previousPriceEth: event.previousPriceEth,
+          availableQuantity: event.availableQuantity,
+          version: event.version,
+          editions: current.editions.map((edition) => {
+            const update = getEditionUpdate(event.editions, edition.id)
+
+            if (!update) {
+              return edition
+            }
+
+            return {
+              ...edition,
+              availableQuantity: update.availableQuantity,
+              purchasable: update.purchasable,
+            }
+          }),
+        }
+      })
+
+      queryClient.setQueriesData<NftListResponse>(
+        {
+          queryKey: catalogQueryKeys.lists(),
+        },
         (current) => {
           if (!current) {
             return current
@@ -79,123 +108,56 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
 
           return {
             ...current,
-            priceEth: event.priceEth,
-            previousPriceEth: event.previousPriceEth,
-            availableQuantity: event.availableQuantity,
-            version: event.version,
-            editions: current.editions.map((edition) => {
-              const update = getEditionUpdate(
-                event.editions,
-                edition.id,
-              )
-
-              if (!update) {
-                return edition
+            items: current.items.map((nft) => {
+              if (nft.id !== event.nftId) {
+                return nft
               }
 
               return {
-                ...edition,
-                availableQuantity:
-                  update.availableQuantity,
-                purchasable:
-                  update.purchasable,
+                ...nft,
+                priceEth: event.priceEth,
+                previousPriceEth: event.previousPriceEth,
+                availableQuantity: event.availableQuantity,
+                version: event.version,
               }
             }),
           }
         },
       )
 
-      queryClient.setQueriesData<NftListResponse>(
-        {
-          queryKey:
-            catalogQueryKeys.lists(),
-        },
-        (current) => {
-          if (!current) {
-            return current
-          }
-
-          return {
-            ...current,
-            items:
-              current.items.map(
-                (nft) => {
-                  if (
-                    nft.id !==
-                    event.nftId
-                  ) {
-                    return nft
-                  }
-
-                  return {
-                    ...nft,
-                    priceEth:
-                      event.priceEth,
-                    previousPriceEth:
-                      event.previousPriceEth,
-                    availableQuantity:
-                      event.availableQuantity,
-                    version:
-                      event.version,
-                  }
-                },
-              ),
-          }
-        },
-      )
-
       queryClient.setQueriesData<Cart>(
         {
-          queryKey:
-            cartQueryKeys.all,
+          queryKey: cartQueryKeys.all,
         },
         (current) => {
           if (!current) {
             return current
           }
 
-          const items =
-            current.items.map(
-              (item) => {
-                if (
-                  item.nftId !==
-                  event.nftId
-                ) {
-                  return item
-                }
+          const items = current.items.map((item) => {
+            if (item.nftId !== event.nftId) {
+              return item
+            }
 
-                const edition =
-                  getEditionUpdate(
-                    event.editions,
-                    item.editionId,
-                  )
+            const edition = getEditionUpdate(event.editions, item.editionId)
 
-                const availableQuantity =
-                  edition?.availableQuantity ??
-                  event.availableQuantity
+            const availableQuantity = edition?.availableQuantity ?? event.availableQuantity
 
-                const priceChanged =
-                  item.priceChanged ||
-                  item.unitPriceEth !==
-                    event.priceEth
+            const priceChanged = item.priceChanged || item.unitPriceEth !== event.priceEth
 
-                const availabilityChanged =
-                  item.availabilityChanged ||
-                  item.availableQuantity !==
-                    availableQuantity ||
-                  item.quantity >
-                    availableQuantity
+            const availabilityChanged =
+              item.availabilityChanged ||
+              item.availableQuantity !== availableQuantity ||
+              item.quantity > availableQuantity
 
-                return {
-                  ...item,
-                  unitPriceEth:
-                    event.priceEth,
-                  availableQuantity,
-                  priceChanged,
-                  availabilityChanged,
-                }
-              },
-            )
+            return {
+              ...item,
+              unitPriceEth: event.priceEth,
+              availableQuantity,
+              priceChanged,
+              availabilityChanged,
+            }
+          })
 
           return {
             ...current,
@@ -205,111 +167,72 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       )
 
       queryClient.removeQueries({
-        queryKey:
-          quoteQueryKeys.all,
+        queryKey: quoteQueryKeys.all,
       })
 
       void queryClient.invalidateQueries({
-        queryKey:
-          catalogQueryKeys.lists(),
+        queryKey: catalogQueryKeys.lists(),
       })
     }
 
-    function handleOrderUpdated(
-      event: OrderUpdatedEvent,
-    ): void {
-      if (
-        !activeUserId ||
-        event.userId !== activeUserId
-      ) {
+    function handleOrderUpdated(event: OrderUpdatedEvent): void {
+      if (!activeUserId || event.userId !== activeUserId) {
         return
       }
 
       if (
-        event.order.id !==
-          event.orderId ||
-        event.order.userId !==
-          event.userId ||
-        event.order.version !==
-          event.version
+        event.order.id !== event.orderId ||
+        event.order.userId !== event.userId ||
+        event.order.version !== event.version
       ) {
         return
       }
 
-      const currentOrder =
-        queryClient.getQueryData<Order>(
-          orderQueryKeys.detail(
-            event.orderId,
-          ),
-        )
+      const currentOrder = queryClient.getQueryData<Order>(orderQueryKeys.detail(event.orderId))
 
       const latestVersion =
-        latestVersionByOrderRef.current.get(
-          event.orderId,
-        ) ??
-        currentOrder?.version
+        latestVersionByOrderRef.current.get(event.orderId) ?? currentOrder?.version
 
-      if (
-        latestVersion !== undefined &&
-        event.version <= latestVersion
-      ) {
+      if (latestVersion !== undefined && event.version <= latestVersion) {
         return
       }
 
-      latestVersionByOrderRef.current.set(
-        event.orderId,
-        event.version,
-      )
+      latestVersionByOrderRef.current.set(event.orderId, event.version)
 
-      queryClient.setQueryData<Order>(
-        orderQueryKeys.detail(
-          event.orderId,
-        ),
-        event.order,
-      )
+      queryClient.setQueryData<Order>(orderQueryKeys.detail(event.orderId), event.order)
 
-      if (
-        event.order.status !==
-        'pending'
-      ) {
+      if (event.order.status !== 'pending') {
         queryClient.removeQueries({
-          queryKey:
-            quoteQueryKeys.all,
+          queryKey: quoteQueryKeys.all,
         })
 
         void queryClient.invalidateQueries({
-          queryKey:
-            cartQueryKeys.all,
+          queryKey: cartQueryKeys.all,
         })
 
         void queryClient.invalidateQueries({
-          queryKey:
-            catalogQueryKeys.all,
+          queryKey: catalogQueryKeys.all,
         })
       }
     }
 
     function reconcileAfterReconnect(): void {
       void queryClient.invalidateQueries({
-        queryKey:
-          catalogQueryKeys.all,
+        queryKey: catalogQueryKeys.all,
       })
 
       void queryClient.invalidateQueries({
-        queryKey:
-          cartQueryKeys.all,
+        queryKey: cartQueryKeys.all,
       })
 
       if (activeUserId) {
         void queryClient.invalidateQueries({
-          queryKey:
-            orderQueryKeys.all,
+          queryKey: orderQueryKeys.all,
         })
       }
 
       queryClient.removeQueries({
-        queryKey:
-          quoteQueryKeys.all,
+        queryKey: quoteQueryKeys.all,
       })
     }
 
@@ -321,87 +244,44 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       hasConnectedOnce = true
     }
 
-    const connectTimer =
-      window.setTimeout(
-        () => {
-          void import(
-            '@/lib/realtime/socket'
-          ).then(
-            ({
-              getRealtimeSocket,
-            }) => {
-              if (disposed) {
-                return
-              }
+    const connectTimer = window.setTimeout(() => {
+      void import('@/lib/realtime/socket').then(({ getRealtimeSocket }) => {
+        if (disposed) {
+          return
+        }
 
-              const sessionToken =
-                auth.status ===
-                'authenticated'
-                  ? getSessionToken()
-                  : null
+        const sessionToken = auth.status === 'authenticated' ? getSessionToken() : null
 
-              socket =
-                getRealtimeSocket(
-                  sessionToken,
-                )
+        socket = getRealtimeSocket(sessionToken)
 
-              socket.on(
-                'connect',
-                handleConnect,
-              )
+        socket.on('connect', handleConnect)
 
-              socket.on(
-                'nft.updated',
-                handleNftUpdated,
-              )
+        socket.on('nft.updated', handleNftUpdated)
 
-              socket.on(
-                'order.updated',
-                handleOrderUpdated,
-              )
+        socket.on('order.updated', handleOrderUpdated)
 
-              if (
-                !socket.connected
-              ) {
-                socket.connect()
-              }
-            },
-          )
-        },
-        REALTIME_CONNECT_DELAY_MS,
-      )
+        if (!socket.connected) {
+          socket.connect()
+        }
+      })
+    }, REALTIME_CONNECT_DELAY_MS)
 
     return () => {
       disposed = true
 
-      window.clearTimeout(
-        connectTimer,
-      )
+      window.clearTimeout(connectTimer)
 
       if (socket) {
-        socket.off(
-          'connect',
-          handleConnect,
-        )
+        socket.off('connect', handleConnect)
 
-        socket.off(
-          'nft.updated',
-          handleNftUpdated,
-        )
+        socket.off('nft.updated', handleNftUpdated)
 
-        socket.off(
-          'order.updated',
-          handleOrderUpdated,
-        )
+        socket.off('order.updated', handleOrderUpdated)
 
         socket.disconnect()
       }
     }
-  }, [
-    activeUserId,
-    auth.status,
-    queryClient,
-  ])
+  }, [activeUserId, auth.status, queryClient])
 
   return children
 }

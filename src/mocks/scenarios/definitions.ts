@@ -184,7 +184,8 @@ export const mockScenarios = {
   'realtime-reconnect': {
     id: 'realtime-reconnect',
     label: 'Realtime reconnect',
-    description: 'Disconnects the Socket.IO client once and publishes an NFT update after reconnection.',
+    description:
+      'Disconnects the Socket.IO client once and publishes an NFT update after reconnection.',
     network: { type: 'latency', sequenceMs: [80] },
     flags: { realtimeDisconnectOnce: true },
   },

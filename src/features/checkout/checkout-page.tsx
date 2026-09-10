@@ -115,6 +115,8 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
 
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(primaryWallet?.id ?? null)
 
+  const [walletConnected, setWalletConnected] = useState(Boolean(primaryWallet))
+
   const selectedWallet =
     wallets.items.find((wallet) => wallet.id === selectedWalletId) ?? primaryWallet
 
@@ -255,6 +257,8 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
 
   function handleWalletSelection(wallet: CollectorWallet): void {
     setSelectedWalletId(wallet.id)
+
+    setWalletConnected(true)
 
     setCollector((current) => ({
       ...current,
@@ -698,10 +702,27 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
                 Carteira e rede
               </Typography>
 
-              <Button asChild variant="link" size="sm">
-                <Link to="/wallets">Gerenciar</Link>
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button asChild variant="link" size="sm">
+                  <Link to="/wallets">Gerenciar</Link>
+                </Button>
+
+                {selectedWallet && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => setWalletConnected((connected) => !connected)}
+                  >
+                    {walletConnected ? 'Desconectar' : 'Conectar'}
+                  </Button>
+                )}
+              </div>
             </div>
+
+            <p role="status" className="mt-1 text-xs text-muted-foreground">
+              {walletConnected ? 'Carteira conectada.' : 'Carteira desconectada.'}
+            </p>
 
             {wallets.items.length === 0 ? (
               <div className="mt-3 rounded-control border border-dashed p-4 text-sm text-muted-foreground">
@@ -792,6 +813,7 @@ function CheckoutContent({ cart, wallets, user }: CheckoutContentProps) {
             className="mt-6 w-full"
             disabled={
               !selectedWallet ||
+              !walletConnected ||
               !quote ||
               quoteLoading ||
               hasAvailabilityConflict ||

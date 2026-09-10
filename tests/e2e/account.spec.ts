@@ -13,9 +13,9 @@ test('validates and persists profile data and avatar changes', async ({ page }) 
   await page.goto('/profile')
 
   const displayName = page.getByLabel('Nome de exibição')
-  await displayName.fill('N')
+  await displayName.fill('N'.repeat(61))
   await page.getByRole('button', { name: 'Salvar perfil' }).click()
-  await expect(page.getByText(/pelo menos 2 caracteres/i)).toBeVisible()
+  await expect(page.getByText(/no máximo 60 caracteres/i)).toBeVisible()
 
   await displayName.fill('Nova Kurio Updated')
   await page.getByRole('button', { name: 'Salvar perfil' }).click()
@@ -52,13 +52,13 @@ test('validates the current password, changes it, and accepts the new password a
   page,
 }, testInfo) => {
   await page.goto('/profile')
-  await page.getByLabel('Senha atual').fill('wrong-password')
-  await page.getByLabel('Nova senha').fill('KurioChanged123!')
-  await page.getByLabel('Confirmar nova senha').fill('KurioChanged123!')
+  await page.locator('#current-password').fill('wrong-password')
+  await page.locator('#new-password').fill('KurioChanged123!')
+  await page.locator('#confirm-new-password').fill('KurioChanged123!')
   await page.getByRole('button', { name: 'Salvar senha' }).click()
   await expect(page.getByRole('alert').filter({ hasText: /senha atual/i })).toBeVisible()
 
-  await page.getByLabel('Senha atual').fill('Kurio123!')
+  await page.locator('#current-password').fill('Kurio123!')
   await page.getByRole('button', { name: 'Salvar senha' }).click()
   await expect(page.getByText('Senha alterada com sucesso.')).toBeVisible()
 
@@ -79,17 +79,18 @@ test('validates, creates, edits, and persists collector wallets', async ({ page 
   await page.getByLabel('Apelido da carteira').fill('Secundária')
   await page.getByLabel('Nome do perfil').fill('tester.eth')
   await page.getByLabel('Endereço da carteira').fill('inválido')
-  await page.getByLabel('E-mail').fill('wallet@kurio.test')
+  await page.getByLabel('E-mail', { exact: true }).fill('wallet@kurio.test')
   await page.getByRole('button', { name: 'Adicionar carteira' }).click()
   await expect(page.getByRole('alert')).toContainText(/endereço de carteira válido/i)
 
-  await page
-    .getByLabel('Endereço da carteira')
-    .fill('0x1111111111111111111111111111111111111111')
+  await page.getByLabel('Endereço da carteira').fill('0x1111111111111111111111111111111111111111')
   await page.getByRole('button', { name: 'Adicionar carteira' }).click()
   await expect(page.getByText('Secundária').first()).toBeVisible()
 
-  await page.getByRole('button', { name: /Secundária/ }).first().click()
+  await page
+    .getByRole('button', { name: /Secundária/ })
+    .first()
+    .click()
   await page.getByLabel('Apelido da carteira').fill('Secundária editada')
   await page.getByRole('button', { name: 'Salvar alterações' }).click()
   await expect(page.getByText('Secundária editada').first()).toBeVisible()

@@ -23,7 +23,6 @@ function notFoundResponse(): HttpResponse<ApiErrorResponse> {
   )
 }
 
-
 function favoriteMutationErrorResponse(): HttpResponse<ApiErrorResponse> {
   return HttpResponse.json(
     {

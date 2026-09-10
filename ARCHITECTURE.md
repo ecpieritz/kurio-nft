@@ -118,29 +118,29 @@ Contratos ficam em `src/lib/api/contracts/` e usam tipos explícitos para IDs, v
 
 ### Endpoints
 
-| Recurso | Método | Endpoint |
-| --- | --- | --- |
-| Cadastro | POST | `/api/auth/register` |
-| Login | POST | `/api/auth/login` |
-| Sessão | GET | `/api/auth/session` |
-| Logout | POST | `/api/auth/logout` |
-| NFTs | GET | `/api/nfts` |
-| NFT | GET | `/api/nfts/:nftId` |
-| Favoritos | GET | `/api/favorites` |
-| Favorito | PUT/DELETE | `/api/favorites/:nftId` |
-| Carrinho | GET | `/api/cart` |
-| Item do carrinho | POST | `/api/cart/items` |
-| Item do carrinho | PATCH/DELETE | `/api/cart/items/:itemId` |
-| Cotação | POST | `/api/quotes` |
-| Cotação | GET | `/api/quotes/:quoteId` |
-| Pedido | POST | `/api/orders` |
-| Pedido | GET | `/api/orders/:orderId` |
-| Recuperação idempotente | GET | `/api/orders/recovery/:idempotencyKey` |
-| Perfil | GET/PATCH | `/api/profile` |
-| Avatar | PATCH | `/api/profile/avatar` |
-| Senha | PATCH | `/api/profile/password` |
-| Carteiras | GET/POST | `/api/wallets` |
-| Carteira | PATCH | `/api/wallets/:walletId` |
+| Recurso                 | Método       | Endpoint                               |
+| ----------------------- | ------------ | -------------------------------------- |
+| Cadastro                | POST         | `/api/auth/register`                   |
+| Login                   | POST         | `/api/auth/login`                      |
+| Sessão                  | GET          | `/api/auth/session`                    |
+| Logout                  | POST         | `/api/auth/logout`                     |
+| NFTs                    | GET          | `/api/nfts`                            |
+| NFT                     | GET          | `/api/nfts/:nftId`                     |
+| Favoritos               | GET          | `/api/favorites`                       |
+| Favorito                | PUT/DELETE   | `/api/favorites/:nftId`                |
+| Carrinho                | GET          | `/api/cart`                            |
+| Item do carrinho        | POST         | `/api/cart/items`                      |
+| Item do carrinho        | PATCH/DELETE | `/api/cart/items/:itemId`              |
+| Cotação                 | POST         | `/api/quotes`                          |
+| Cotação                 | GET          | `/api/quotes/:quoteId`                 |
+| Pedido                  | POST         | `/api/orders`                          |
+| Pedido                  | GET          | `/api/orders/:orderId`                 |
+| Recuperação idempotente | GET          | `/api/orders/recovery/:idempotencyKey` |
+| Perfil                  | GET/PATCH    | `/api/profile`                         |
+| Avatar                  | PATCH        | `/api/profile/avatar`                  |
+| Senha                   | PATCH        | `/api/profile/password`                |
+| Carteiras               | GET/POST     | `/api/wallets`                         |
+| Carteira                | PATCH        | `/api/wallets/:walletId`               |
 
 ## 5. Valores ETH
 
