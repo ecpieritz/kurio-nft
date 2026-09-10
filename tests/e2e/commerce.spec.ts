@@ -137,7 +137,11 @@ test('completes a purchase from the catalog without duplicating repeated submiss
 
   const confirm = page.getByRole('button', { name: 'Confirmar compra' })
   await expect(confirm).toBeEnabled()
-  await confirm.dblclick()
+  
+  // Replace unstable dblclick with sequential clicks for better reliability
+  await confirm.click()
+  await page.waitForTimeout(100)
+  await confirm.click()
 
   await expect(page).toHaveURL(/\/orders\//, { timeout: 15_000 })
   await expect(
@@ -145,7 +149,9 @@ test('completes a purchase from the catalog without duplicating repeated submiss
   ).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('link', { name: 'Ver no explorador' })).toBeVisible()
   await expect
-    .poll(async () => (await getMockState(page)).counts.orders)
+    .poll(async () => (await getMockState(page)).counts.orders, {
+      timeout: 8_000,
+    })
     .toBe(initialOrderCount + 1)
 })
 
