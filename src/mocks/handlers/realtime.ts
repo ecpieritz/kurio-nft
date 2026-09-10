@@ -95,12 +95,15 @@ function toOrderUpdatedEvent(
 }
 
 function getConnectedUserId(
-  clientUrl: string,
+  clientUrl: string | URL,
 ): string | null {
+  const url =
+    clientUrl instanceof URL
+      ? clientUrl
+      : new URL(clientUrl)
+
   const sessionToken =
-    new URL(
-      clientUrl,
-    ).searchParams.get(
+    url.searchParams.get(
       'sessionToken',
     )
 
