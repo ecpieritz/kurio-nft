@@ -8,6 +8,7 @@ import type {
 import { authorizeMockRequest } from '@/mocks/auth/authorize-request'
 import { mockDatabase } from '@/mocks/database/database'
 import { applyNetworkScenario } from '@/mocks/scenarios/network'
+import { getActiveScenario } from '@/mocks/scenarios/runtime'
 
 function notFoundResponse(): HttpResponse<ApiErrorResponse> {
   return HttpResponse.json(
@@ -19,6 +20,20 @@ function notFoundResponse(): HttpResponse<ApiErrorResponse> {
       },
     },
     { status: 404 },
+  )
+}
+
+
+function favoriteMutationErrorResponse(): HttpResponse<ApiErrorResponse> {
+  return HttpResponse.json(
+    {
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Não foi possível atualizar o favorito.',
+        retryable: true,
+      },
+    },
+    { status: 503 },
   )
 }
 
@@ -39,6 +54,10 @@ export const favoriteHandlers = [
   http.put('*/api/favorites/:nftId', async ({ request, params }) => {
     const scenarioResponse = await applyNetworkScenario('favorites')
     if (scenarioResponse) return scenarioResponse
+
+    if (getActiveScenario().flags.favoriteMutationError) {
+      return favoriteMutationErrorResponse()
+    }
 
     const authorization = authorizeMockRequest(request)
     if (!authorization.authorized) return authorization.response
@@ -70,6 +89,10 @@ export const favoriteHandlers = [
   http.delete('*/api/favorites/:nftId', async ({ request, params }) => {
     const scenarioResponse = await applyNetworkScenario('favorites')
     if (scenarioResponse) return scenarioResponse
+
+    if (getActiveScenario().flags.favoriteMutationError) {
+      return favoriteMutationErrorResponse()
+    }
 
     const authorization = authorizeMockRequest(request)
     if (!authorization.authorized) return authorization.response

@@ -1,4 +1,4 @@
-import { useEffect, type PropsWithChildren } from 'react'
+import { useEffect, useRef, type PropsWithChildren } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
 import { cartQueryKeys } from '@/features/cart/cart-query'
@@ -24,12 +24,41 @@ function getEditionUpdate(
 
 export function RealtimeProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient()
+  const latestVersionByNftRef = useRef(new Map<string, number>())
 
   useEffect(() => {
     let socket: RealtimeSocket | null = null
     let disposed = false
 
     function handleNftUpdated(event: NftUpdatedEvent): void {
+      let latestVersion = latestVersionByNftRef.current.get(event.nftId)
+
+      const detailVersion = queryClient.getQueryData<NftDetails>(
+        catalogQueryKeys.detail(event.nftId),
+      )?.version
+
+      if (detailVersion !== undefined) {
+        latestVersion = Math.max(latestVersion ?? detailVersion, detailVersion)
+      }
+
+      const listEntries = queryClient.getQueriesData<NftListResponse>({
+        queryKey: catalogQueryKeys.lists(),
+      })
+
+      for (const [, list] of listEntries) {
+        const listVersion = list?.items.find((nft) => nft.id === event.nftId)?.version
+
+        if (listVersion !== undefined) {
+          latestVersion = Math.max(latestVersion ?? listVersion, listVersion)
+        }
+      }
+
+      if (latestVersion !== undefined && event.version <= latestVersion) {
+        return
+      }
+
+      latestVersionByNftRef.current.set(event.nftId, event.version)
+
       queryClient.setQueryData<NftDetails>(catalogQueryKeys.detail(event.nftId), (current) => {
         if (!current) {
           return current

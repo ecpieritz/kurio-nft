@@ -17,6 +17,9 @@ export const mockScenarioIds = [
   'expired-coupon',
   'price-changed',
   'edition-sold-out',
+  'favorite-mutation-error',
+  'realtime-stale-duplicate',
+  'realtime-reconnect',
   'order-timeout',
   'payment-confirmed',
   'payment-declined',
@@ -32,6 +35,9 @@ export interface MockScenarioFlags {
   expiredCoupon?: boolean
   priceChanged?: boolean
   editionSoldOut?: boolean
+  favoriteMutationError?: boolean
+  realtimeStaleDuplicate?: boolean
+  realtimeDisconnectOnce?: boolean
   timeoutAfterOrderCreation?: boolean
   paymentOutcome?: 'confirmed' | 'declined'
 }
@@ -160,6 +166,27 @@ export const mockScenarios = {
     description: 'An NFT edition becomes unavailable during checkout.',
     network: { type: 'latency', sequenceMs: [80] },
     flags: { editionSoldOut: true },
+  },
+  'favorite-mutation-error': {
+    id: 'favorite-mutation-error',
+    label: 'Favorite mutation error',
+    description: 'Favorite reads succeed, but the next favorite mutation returns a server error.',
+    network: { type: 'latency', sequenceMs: [500] },
+    flags: { favoriteMutationError: true },
+  },
+  'realtime-stale-duplicate': {
+    id: 'realtime-stale-duplicate',
+    label: 'Duplicate and stale realtime events',
+    description: 'Emits a valid NFT update followed by a duplicate and an older event.',
+    network: { type: 'latency', sequenceMs: [80] },
+    flags: { priceChanged: true, realtimeStaleDuplicate: true },
+  },
+  'realtime-reconnect': {
+    id: 'realtime-reconnect',
+    label: 'Realtime reconnect',
+    description: 'Disconnects the Socket.IO client once and publishes an NFT update after reconnection.',
+    network: { type: 'latency', sequenceMs: [80] },
+    flags: { realtimeDisconnectOnce: true },
   },
   'order-timeout': {
     id: 'order-timeout',

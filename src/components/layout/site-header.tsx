@@ -190,7 +190,13 @@ export function SiteHeader() {
                 )}
               </div>
             ) : auth.status === 'pending' ? (
-              <Button type="button" size="sm" className="ml-2" disabled aria-label="Recuperando sessão">
+              <Button
+                type="button"
+                size="sm"
+                className="ml-2"
+                disabled
+                aria-label="Recuperando sessão"
+              >
                 <Icon name="user" className="size-4 brightness-0" />
                 <span>Carregando...</span>
               </Button>

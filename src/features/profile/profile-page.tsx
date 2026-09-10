@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { Icon } from '@/components/ui/icon'
 import { Input } from '@/components/ui/input'
 import { Typography } from '@/components/ui/typography'
@@ -804,6 +805,52 @@ function PasswordEditor() {
   )
 }
 
+function MobileAccountActions() {
+  const auth = useAuth()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [pending, setPending] = useState(false)
+
+  async function logout(): Promise<void> {
+    if (pending) return
+    setPending(true)
+    try {
+      await auth.logout()
+    } finally {
+      setOpen(false)
+      setPending(false)
+      await navigate({ to: '/', replace: true })
+    }
+  }
+
+  return (
+    <div className="mb-6 flex items-center justify-between gap-4 rounded-panel bg-card p-4 lg:hidden">
+      <p className="min-w-0 truncate text-sm font-semibold">
+        Olá, {auth.user?.displayName || auth.user?.username}!
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        <Icon name="logout" className="size-4" />
+        Sair da conta
+      </Button>
+      <ConfirmationDialog
+        open={open}
+        title="Sair da sua conta?"
+        description="Você precisará entrar novamente para acessar seus dados privados."
+        confirmLabel="Sim, sair"
+        pending={pending}
+        onOpenChange={setOpen}
+        onConfirm={() => void logout()}
+      />
+    </div>
+  )
+}
+
 export function ProfilePage() {
   const profileQuery = useProfileQuery()
 
@@ -875,6 +922,7 @@ export function ProfilePage() {
       tabIndex={-1}
       className="mx-auto min-h-[75svh] w-full max-w-(--content-max) px-(--page-gutter) py-7 md:py-10"
     >
+      <MobileAccountActions />
       <div className="grid gap-8 lg:grid-cols-[19rem_minmax(0,1fr)]">
         <AccountSidebar />
 

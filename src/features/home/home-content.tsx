@@ -400,7 +400,10 @@ export function HomeContent() {
           )}
 
           {totalPages > 1 && (
-            <nav aria-label="Páginas do catálogo na página inicial" className="mt-10 flex justify-end gap-2">
+            <nav
+              aria-label="Páginas do catálogo na página inicial"
+              className="mt-10 flex justify-end gap-2"
+            >
               <Button
                 type="button"
                 variant="outline"

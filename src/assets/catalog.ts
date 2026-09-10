@@ -9,8 +9,7 @@ export interface ImageAsset {
 export const nftArtwork = {
   emeraldApe: {
     src: '/images/monkey-01-800.webp',
-    srcSet:
-      '/images/monkey-01-400.webp 400w, /images/monkey-01-800.webp 800w',
+    srcSet: '/images/monkey-01-400.webp 400w, /images/monkey-01-800.webp 800w',
     alt: 'Emerald Ape wearing round sunglasses and a green varsity jacket',
     width: 800,
     height: 800,
@@ -18,8 +17,7 @@ export const nftArtwork = {
 
   violetNomad: {
     src: '/images/monkey-02-800.webp',
-    srcSet:
-      '/images/monkey-02-400.webp 400w, /images/monkey-02-800.webp 800w',
+    srcSet: '/images/monkey-02-400.webp 400w, /images/monkey-02-800.webp 800w',
     alt: 'Violet Nomad wearing an olive bucket hat and a purple hoodie',
     width: 800,
     height: 800,
@@ -27,8 +25,7 @@ export const nftArtwork = {
 
   ivoryBaron: {
     src: '/images/monkey-03-800.webp',
-    srcSet:
-      '/images/monkey-03-400.webp 400w, /images/monkey-03-800.webp 800w',
+    srcSet: '/images/monkey-03-400.webp 400w, /images/monkey-03-800.webp 800w',
     alt: 'Ivory Baron wearing an ivory suit over a dark turtleneck',
     width: 800,
     height: 800,
@@ -36,8 +33,7 @@ export const nftArtwork = {
 
   goldenBeat: {
     src: '/images/monkey-04-800.webp',
-    srcSet:
-      '/images/monkey-04-400.webp 400w, /images/monkey-04-800.webp 800w',
+    srcSet: '/images/monkey-04-400.webp 400w, /images/monkey-04-800.webp 800w',
     alt: 'Golden Beat wearing green headphones and a cream jacket',
     width: 800,
     height: 800,
@@ -62,8 +58,6 @@ export const iconAssets = {
   userBold: '/images/icons/ic-user-bold.svg',
 } as const
 
-export type NftArtworkName =
-  keyof typeof nftArtwork
+export type NftArtworkName = keyof typeof nftArtwork
 
-export type IconName =
-  keyof typeof iconAssets
+export type IconName = keyof typeof iconAssets

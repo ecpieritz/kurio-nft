@@ -82,6 +82,17 @@ export const controlHandlers = [
         carts: state.carts.length,
         orders: state.orders.length,
       },
+      orders: state.orders.map((order) => ({
+        id: order.id,
+        userId: order.userId,
+        status: order.status,
+        createdAt: order.createdAt,
+      })),
+      idempotencyRecords: state.idempotencyRecords.map((record) => ({
+        key: record.key,
+        userId: record.userId,
+        orderId: record.orderId,
+      })),
     })
   }),
 

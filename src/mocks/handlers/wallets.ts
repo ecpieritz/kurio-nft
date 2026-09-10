@@ -98,6 +98,16 @@ function errorResponse(
   )
 }
 
+function isValidWalletAddress(network: BlockchainNetwork, address: string): boolean {
+  const normalizedAddress = address.trim()
+
+  if (network === 'ethereum' || network === 'polygon') {
+    return /^0x[a-fA-F0-9]{40}$/.test(normalizedAddress)
+  }
+
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(normalizedAddress)
+}
+
 function validateWalletRequest(request: SaveWalletRequest): HttpResponse<ApiErrorResponse> | null {
   if (
     !request.displayName.trim() ||
@@ -111,6 +121,14 @@ function validateWalletRequest(request: SaveWalletRequest): HttpResponse<ApiErro
 
   if (!request.email.includes('@')) {
     return errorResponse('VALIDATION_ERROR', 'Informe um e-mail válido.', 422)
+  }
+
+  if (!isValidWalletAddress(request.network, request.address)) {
+    return errorResponse(
+      'VALIDATION_ERROR',
+      'Informe um endereço de carteira válido para a rede selecionada.',
+      422,
+    )
   }
 
   return null

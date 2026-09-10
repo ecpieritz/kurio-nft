@@ -1,66 +1,38 @@
-import type {
-  ComponentProps,
-  CSSProperties,
-} from 'react'
+import type { ComponentProps, CSSProperties } from 'react'
 
-import {
-  iconAssets,
-  type IconName,
-} from '@/assets/catalog'
+import { iconAssets, type IconName } from '@/assets/catalog'
 import { cn } from '@/lib/utils'
 
-interface IconProps
-  extends Omit<
-    ComponentProps<'img'>,
-    'alt' | 'src'
-  > {
+interface IconProps extends Omit<ComponentProps<'img'>, 'alt' | 'src'> {
   name: IconName
   label?: string
   color?: string
 }
 
-const transparentPixel =
-  'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
+const transparentPixel = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
 
-export function Icon({
-  name,
-  label,
-  color,
-  className,
-  style,
-  ...props
-}: IconProps) {
-  const iconSrc =
-    iconAssets[name]
+export function Icon({ name, label, color, className, style, ...props }: IconProps) {
+  const iconSrc = iconAssets[name]
 
   if (color) {
     const coloredIconStyle: CSSProperties = {
-      WebkitMaskImage:
-        `url("${iconSrc}")`,
+      WebkitMaskImage: `url("${iconSrc}")`,
 
-      maskImage:
-        `url("${iconSrc}")`,
+      maskImage: `url("${iconSrc}")`,
 
-      WebkitMaskRepeat:
-        'no-repeat',
+      WebkitMaskRepeat: 'no-repeat',
 
-      maskRepeat:
-        'no-repeat',
+      maskRepeat: 'no-repeat',
 
-      WebkitMaskPosition:
-        'center',
+      WebkitMaskPosition: 'center',
 
-      maskPosition:
-        'center',
+      maskPosition: 'center',
 
-      WebkitMaskSize:
-        'contain',
+      WebkitMaskSize: 'contain',
 
-      maskSize:
-        'contain',
+      maskSize: 'contain',
 
-      backgroundColor:
-        color,
+      backgroundColor: color,
 
       ...style,
     }
@@ -69,18 +41,9 @@ export function Icon({
       <img
         src={transparentPixel}
         alt={label ?? ''}
-        aria-hidden={
-          label
-            ? undefined
-            : true
-        }
-        className={cn(
-          'size-5 shrink-0',
-          className,
-        )}
-        style={
-          coloredIconStyle
-        }
+        aria-hidden={label ? undefined : true}
+        className={cn('size-5 shrink-0', className)}
+        style={coloredIconStyle}
         {...props}
       />
     )
@@ -90,15 +53,8 @@ export function Icon({
     <img
       src={iconSrc}
       alt={label ?? ''}
-      aria-hidden={
-        label
-          ? undefined
-          : true
-      }
-      className={cn(
-        'size-5 shrink-0',
-        className,
-      )}
+      aria-hidden={label ? undefined : true}
+      className={cn('size-5 shrink-0', className)}
       style={style}
       {...props}
     />
