@@ -19,7 +19,7 @@ test('rolls back an optimistic favorite after a mutation failure and persists th
 
   await expect(
     page.getByRole('alert').filter({ hasText: /estado anterior foi restaurado/i }),
-  ).toBeAttached()
+  ).toBeVisible()
 
   await expect(page.getByRole('button', { name: 'Adicionar aos favoritos' })).toHaveAttribute(
     'aria-pressed',
