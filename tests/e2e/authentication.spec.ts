@@ -26,7 +26,9 @@ test('registers a user, creates a persistent session, and logs out with confirma
   await expect(page).toHaveURL('/')
 
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('kurio:session-token:v1')))
+    .poll(() => page.evaluate(() => localStorage.getItem('kurio:session-token:v1')), {
+      timeout: 5_000,
+    })
     .not.toBeNull()
 
   await page.reload()
@@ -38,7 +40,9 @@ test('registers a user, creates a persistent session, and logs out with confirma
   await logoutFromUi(page, testInfo.project.name.includes('mobile'))
 
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('kurio:session-token:v1')))
+    .poll(() => page.evaluate(() => localStorage.getItem('kurio:session-token:v1')), {
+      timeout: 5_000,
+    })
     .toBeNull()
 })
 
