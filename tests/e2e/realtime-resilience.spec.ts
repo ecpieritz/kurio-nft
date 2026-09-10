@@ -82,7 +82,9 @@ test('recovers the same pending order after a connection interruption', async ({
   expect(createdOrder.status).toBe('pending')
 
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('kurio:pending-order:v1')))
+    .poll(() => page.evaluate(() => localStorage.getItem('kurio:pending-order:v1')), {
+      timeout: 5_000,
+    })
     .not.toBeNull()
 
   await page.clock.setFixedTime(new Date(Date.parse(createdOrder.createdAt) + 2_000))
